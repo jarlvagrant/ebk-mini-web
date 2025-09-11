@@ -1,0 +1,47 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% set allowed_types = ['epub', 'txt', 'pdf', 'mobi', 'azw'] %}
+
+{% if folders|length > 0 %}
+{% for folder, folder_path in folders.items() %}
+<table>
+    <tr class="{{ loop.cycle('folders_odd', 'folders_even') }}">
+        <td style="width: 2%">
+            <input type="checkbox" name="file_checkbox">
+        </td>
+        <td class="folder_name" colspan="6">
+            <p data-label="{{ folder_path }}" style="color: white;">{% for i in range(indent) %}<span class="pad_left"></span>{% endfor %}
+                <span class="collapsible_folder" onclick="toggle_collapse_folder(this)"></span>{{ folder }}</p>
+        </td>
+    </tr>
+</table>
+<table id="{{ folder_path }}"></table>
+{% endfor %}
+{% endif %}
+
+{% if files|length > 0 %}
+<table>
+    {% for file_name, file_info in files.items() %}
+    {% set parent = file_info['parent'] %}
+    <tr class="{{ loop.cycle('files_odd', 'files_even') }}">
+        <td style="width: 2%">
+            <input type="checkbox" name="file_checkbox">
+        </td>
+        <td class="file_name">
+            {% set first_ext = file_info.values()|first %}
+            <p style="margin-left: 20px; color: black; white-space: nowrap; overflow-x: clip" onclick="onItemMenu(event, '{{ parent }}')">
+                {% for i in range(indent) %}<span class="pad_left"></span>{% endfor %}{{ file_name }}</p>
+        </td>
+        {% for file_type in allowed_types %}
+            {% set ext_info = file_info[file_type] %}
+            {% if ext_info|length > 0 %}
+                {% set ext_path = ext_info['path'] %}
+            {% endif %}
+        <td style="width: 4%">
+            <a id="{{ parent }}{{ file_name }}.{{ file_type }}" {% if ext_path %}href="{{url_for('ebk_download', file_path=ext_path) }}"
+               {% else %}style="color: lightgray" {% endif %} download="">{{ file_type }}</a>
+        </td>
+        {% endfor %}
+    </tr>
+    {% endfor %}
+</table>
+{% endif %}

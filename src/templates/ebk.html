@@ -1,0 +1,398 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<h2>{% block title %}- Convert EBook and send to Kindle:{% endblock %}</h2>
+<div class="right">
+    <div id="epub_folder">
+        <label class="gray" for="ebook_dir" style="margin-right: 5px">Save to: </label>
+        <input class="gray" id="ebook_dir" value="{{ ebook_dir }}" onfocusout="folder_input(event)"/>
+        <select class="gray" onchange="folder_selected(event)" style="width:26px">
+            {% for folder in folders %}
+            <option value={{ folder }}>{{ folder }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label class="gray" for="email to">Email to: </label>
+        <input class="gray" id="email to" value="{{ recipient }}" type="email" onfocusout="update_config(event)"/>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<table>
+    <tr>
+        <form action="javascript:upload_ebooks()" enctype="multipart/form-data" method="post">
+            <td>Local files: <input class="table" type="file" id="docs" name="docs" accept=".txt,.epub,.mobi,.azw,.pdf" multiple/></td>
+            <td style="width: 8rem">
+                <button style="min-width: 8rem;">Upload</button>
+            </td>
+        </form>
+    </tr>
+    <tr>
+        <td>From url:<input class="table" name="ebook_url" id="ebook_url" style="min-width: 30rem;margin-left: 29px"
+                             placeholder="http://some_ebook_url"></td>
+        <td>
+            <button onclick="add_extract_url(this)" style="min-width: 8rem;">Add url</button>
+        </td>
+    </tr>
+    <tr>
+        <td>Server files:</td>
+        <td>
+            <a href="{{ url_for('ebk_listfiles') }}">
+                <button style="min-width: 8rem;">Load</button>
+            </a>
+        </td>
+    </tr>
+</table>
+<div align="right" style="margin-top: 1em">
+    <button type="button" id="extract_content_all" style="margin-right: 1em" onclick="extract_content_all()">Extract all</button>
+    <button type="button" id="convert_all" style="margin-right: 1em" onclick="convert_all()">Convert all</button>
+    <button type="button" id="send_all" style="margin-right: 1em" onclick="email_epub_all()">Email ePubs</button>
+    <button type="button" id="remove_all" style="margin-right: 1em" onclick="remove_all()">Clear</button>
+    <a href="{{ url_for('ebk_download', file_path=log) }}" target="_blank"><button type="button" id="log">Log</button></a>
+</div>
+<div id="uploads"></div>
+<div id="urls"></div>
+<div id="listfiles"></div>
+<div id="contextMenu" class="context-menu" style="display:none">
+    <ul>
+        <li id="context_menu_extract">Extract</li>
+        <li id="context_menu_extract_email">Extract & Email</li>
+        <li id="context_menu_convert">Convert</li>
+        <li id="context_menu_convert_email">Convert & Email</li>
+        <li id="context_menu_email">Email</li>
+        <li id="context_menu_remove">Remove</li>
+    </ul>
+</div>
+<script>
+    document.onclick = hideItemMenu
+
+    $("#uploads").load("/ebk_uploads");
+    $("#urls").load("/ebk_urls");
+
+    function sync_input(event) {
+        let sub_key = event.target.name
+        let key = event.target.id.replace(sub_key, '');
+        let value = event.target.value;
+        $.post("/ebk_sync_input", {"key": key, "sub_key":sub_key, "value": value}, function (response) {
+            if (response.code === 200) {
+                console.log("Sync input " + key + ": " + sub_key + "=" + value);
+            }
+        })
+    }
+
+    function sync_input_radio(event) {
+        let sub_key = event.target.name
+        let value = document.querySelector('input[name="method"]:checked').value
+        let key = event.target.id.replace(value, '');
+        $.post("/ebk_sync_input", {"key": key, "sub_key":sub_key, "value": value}, function (response) {
+            if (response.code === 200) {
+                console.log("Sync input " + key + ": " + sub_key + "=" + value);
+            }
+        })
+    }
+
+    function send_cover_url(e) {
+        let part = e.id.replace("cover_url", "");
+        let image_id = e.id.replace("cover_url", "image")
+        let image = document.getElementById(image_id)
+        image.src = e.value;
+        let json_data = {
+            title: part,
+            img_url: e.value,
+        }
+        $.post("/ebk_cover_url", json_data, function (response) {
+            if (response.code === 200) {
+                console.log("Got cover: " + image_id);
+            } else {
+                console.log("Failed fetching cover: " + image_id);
+            }
+        })
+    }
+
+    async function send_cover(e) {
+        let part = e.id.replace("cover", "")
+        let image_id = e.id.replace("cover", "image")
+        let image = document.getElementById(image_id)
+        let file = e.files[0]
+        image.src = URL.createObjectURL(file);
+
+        let formData = new FormData();
+        formData.append("image", e.files[0]);
+        formData.append("title", part)
+        const response = await fetch("/ebk_cover", {method: "POST", body: formData})
+        if (response.status === 200) {
+            console.log("Got cover: " + image_id);
+        } else {
+            console.log("Failed loading cover: " + image_id);
+        }
+    }
+
+    function hideItemMenu() {
+        if (! event.target.classList.contains('collapsible') || event.pageX >= 80)
+            document.getElementById("contextMenu").style.display = "none"
+    }
+
+    function onItemMenu(event) {
+        event.preventDefault();
+        let menu = document.getElementById("contextMenu")
+        if (menu.style.display === "block")
+            document.getElementById("contextMenu").style.display = "none"
+        else {
+            menu.style.display = 'block';
+            menu.style.left = event.pageX + "px";
+            menu.style.top = event.pageY + "px";
+            if (event.target.name === "collapsible_local") {
+                document.getElementById("context_menu_extract").style.display = "none";
+                document.getElementById("context_menu_extract_email").style.display = "none";
+                document.getElementById("context_menu_convert").style.display = "block";
+                document.getElementById("context_menu_convert_email").style.display = "block";
+            } else {
+                document.getElementById("context_menu_extract").style.display = "block";
+                document.getElementById("context_menu_extract_email").style.display = "block";
+                document.getElementById("context_menu_convert").style.display = "none";
+                document.getElementById("context_menu_convert_email").style.display = "none";
+            }
+            document.getElementById("context_menu_extract").onclick = function handle_extract() {
+                extract_content(event.target, false);
+            };
+            document.getElementById("context_menu_extract_email").onclick = function handle_extract() {
+                extract_content(event.target, true);
+            };
+            document.getElementById("context_menu_convert").onclick = function handle_convert() {
+                convert(event.target, false);
+            };
+            document.getElementById("context_menu_convert_email").onclick = function handle_convert() {
+                convert(event.target, true);
+            };
+            document.getElementById("context_menu_email").onclick = function handle_email() {
+                email_epub(event.target);
+            };
+            document.getElementById("context_menu_remove").onclick = function handle_remove() {
+                remove_item(event.target, event.target.name);
+            };
+        }
+    }
+
+    function extract_content(input, to_email=false) {
+        let part = input.innerText;
+        if (document.getElementById('txt' + part).href) {
+            let answer = confirm(part + " txt exist, overwrite?")
+            if (answer === false) return;
+        }
+        let data = {
+            'url': part,
+            'intro': document.getElementById('intro' + part).value,
+            'method': document.querySelector('input[name="method"]:checked').value,
+            'index_tag_k': document.getElementById('index_tag_k' + part).value,
+            'index_tag_v': document.getElementById('index_tag_v' + part).value,
+            'next_tag': document.getElementById('next_tag' + part).value,
+            'content_tag_k': document.getElementById('content_tag_k' + part).value,
+            'content_tag_v': document.getElementById('content_tag_v' + part).value,
+            'to_email' : to_email
+        };
+        console.log(data);
+        $.post("/ebk_extractor_task", data, function (response) {
+            if (response.code === 200) {
+                console.log("Initialed extract task " + part);
+                refresh(part);
+            } else {
+                console.log("Failed initializing extract task " + part);
+                alert(response.message);
+            }
+        });
+    }
+
+    function extract_content_all() {
+        let items = document.getElementsByName("collapsible_web");
+        if (items.length === 0) {
+            alert("No items in extract list");
+        }
+        for (let i = 0; i < items.length; i++) {
+            extract_content(items[i]);
+        }
+    }
+
+    function refresh(url) {
+        let refresher_id = setInterval(function () {
+            $.post("/ebk_sync_output", {'key': url}, function (response) {
+                if (response.code === 200) {
+                    if (response.content && response.content.length > 0) {
+                        document.getElementById('content' + url).value = response.content;
+                    }
+                    if (response.chapter && response.chapter.length > 0) {
+                        document.getElementById('chap' + url).value = response.chapter;
+                    }
+                    if (response.txt && response.txt.length > 0) {
+                        document.getElementById("txt" + url).href = "ebk_download?file_path=" + response.txt;
+                        document.getElementById("txt" + url).style.color = "#377ba8";
+                    }
+                    if (response.epub && response.epub.length > 0) {
+                        let epub = document.getElementById("epub" + url)
+                        epub.href = "ebk_download?file_path=" + response.epub;
+                        epub.style.color = "#377ba8";
+                        epub.dataset.label = response.epub;
+                    }
+                    if (response.stop === true) {
+                        console.log("last refresh for extractor");
+                        clearInterval(refresher_id);
+                        if (response.message !== "") {
+                            alert(response.message);
+                        }
+                    }
+                }
+            })
+        }, 2000);
+    }
+
+    // need to check if input is the same on collapsible_content
+    function convert(input, to_email=false) {
+        let part = input.innerText;
+        if (document.getElementById("epub" + part).href) {
+            let answer = confirm(part + ": Epub file exists, overwrite?");
+            if (answer === false) return;
+        }
+        let data = {
+            'key': part,
+            'intro': document.getElementById('intro' + part).value,
+            'to_email': to_email
+        };
+        console.log(data);
+        $.post("/ebk_convert_task", data, function (response) {
+            if (response.epub && response.epub.length > 0) {
+                let epub = document.getElementById("epub" + part)
+                epub.href = "ebk_download?file_path=" + response.epub;
+                epub.style.color = "#377ba8";
+                epub.dataset.label = response.epub;
+            }
+            if (response.chapter && response.chapter.length > 0) {
+                document.getElementById('info' + part).value = response.chapter;
+            }
+            alert(response.message);
+        });
+    }
+
+    function convert_all() {
+        let items = document.getElementsByName("collapsible_local");
+        if (items.length === 0) {
+            alert("No item in convert list");
+        }
+        for (let i = 0; i < items.length; i++) {
+            convert(items[i]);
+        }
+    }
+
+    function toggle_collapse(event) {
+        if (event.pageX < 80) {
+            onItemMenu(event)
+        } else {
+            let input = event.target;
+            let is_collapsed = input.classList.toggle('active');
+            let content = input.nextElementSibling;
+            if (content.style.display === "block") {
+                content.style.display = "none";
+            } else {
+                content.style.display = "block";
+            }
+            let value = ""
+            if (is_collapsed) {
+                value = "active"
+            }
+            $.post("/ebk_sync_input", {"key": input.innerText, "sub_key": "is_collapsed", "value": value}, function (response) {
+                if (response.code === 200) {
+                    console.log("Sync input " + input.innerText + ": is_collapsed" + "=" + value);
+                }
+            })
+        }
+    }
+
+    async function upload_ebooks() {
+        let files = document.getElementById('docs').files;
+        if (files.length > 0) {
+            let names = []
+            let formData = new FormData();
+            for (let file of files) {
+                names.push(file['name']);
+                formData.append('docs', file);
+            }
+            console.log(names)
+
+            await fetch("/ebk_uploads", {method: "POST", body: formData}).then(function (response) {
+                if (response.status === 200) {
+                    console.log("Uploaded " + names);
+                } else {
+                    response.text().then(function (text) {
+                        console.log(text);
+                        alert(text);
+                    })
+                }
+            })
+            $("#uploads").load("/ebk_uploads");
+        }
+    }
+
+    function add_extract_url() {
+        let url = document.getElementById('ebook_url').value;
+        console.log("Add url to extract: " + url);
+        try {
+            new URL(url);
+        } catch (error) {
+            window.alert(error);
+            return;
+        }
+        $("#urls").load("/ebk_urls", {"new_url": url});
+    }
+
+    function email_epub(input) {
+        let path = document.getElementById("epub" + input.innerText).dataset.label;
+        if (!path || path.length === 0) {
+            window.alert("Please convert/extract selected task first!");
+        } else {
+            console.log("request sending email with attachment: " + path);
+            $.post("/ebk_email", {'paths[]': [path]}, function (response) {
+                window.alert(response.message);
+            });
+        }
+    }
+
+    function email_epub_all() {
+        let items = document.getElementsByClassName("collapsible");
+        let paths = []
+        for (let i = 0; i < items.length; i++) {
+            let url = document.getElementById("epub" + items[i].innerText).href
+            let path = decodeURI(url.split("file_path=")[1]);
+            if (path && path.length > 0) paths.push(path)
+        }
+        console.log(paths);
+        let answer = true;
+        if (paths.length > 3) {
+            answer = confirm("Confirm to email " + paths.length + " epubs:\n" + paths.join("\n"));
+        }
+        if (paths.length === 0 || answer === false) return;
+        $.post("ebk_email", {'paths[]': paths}, function (response) {
+            window.alert(response.message);
+        })
+    }
+
+    function remove_item(input, type) {
+        console.log(input);
+        $.post("ebk_remove", {'key': input.innerText}, function (response) {
+            if (type === "collapsible_local") {
+                $("#uploads").load("/ebk_uploads");
+            } else if (type === "collapsible_web") {
+                $("#urls").load("/ebk_urls");
+            }
+        })
+    }
+
+    function remove_all() {
+        let answer = confirm("Confirm to remove everything in the list!");
+        if (answer === false) return;
+        $.post("ebk_remove", {'all': true}, function (response) {
+            $("#uploads").load("/ebk_uploads");
+            $("#urls").load("/ebk_urls");
+        });
+    }
+</script>
+{% endblock %}

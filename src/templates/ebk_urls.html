@@ -1,0 +1,70 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% if book_urls|length > 0 %}
+{% block header %}
+<div>
+  <h3 style="display:inline-block">{% block title %}Index/First page urls:{% endblock %}</h3>
+</div>
+{% endblock %}
+<div id="book_top_url" style="padding-left: 12px">
+  {% for url, status in book_urls.items() %}
+  <button type="button" class="collapsible {{ status.is_collapsed }}" name="collapsible_web" onclick="toggle_collapse(event)" oncontextmenu="onItemMenu(event)">{{ url }}</button>
+  <div class="collapsible_content" {% if status.is_collapsed %}style="display:block"{% endif %}>
+    <label class="gray">Extract method:</label>
+    <a class="epub" id="epub{{ url }}" data-label="{{ file_path }}" {% if status.epub|length > 0 %}href="{{ url_for('ebk_download', file_path=status.epub) }}" style="float: right; margin-right: 2em"{% else %}style="color:lightgray; float: right; margin-right: 2em"{% endif %} download="">EPUB</a>
+    <a id="txt{{ url }}" {% if status.txt|length > 0 %}href="{{ url_for('ebk_download', file_path=status.txt) }}" style="float: right; margin-right: 2em"{% else %}style="color: lightgray; float: right; margin-right: 2em"{% endif %} download="">TXT</a>
+    <table>
+      <tr>
+        <th style="width: 16rem"><label class="radio" style="color:dimgray; font-style: italic;">Input cover image:</label></th>
+        <th style="width:36%">
+          <input class="table" type="radio" id="index{{ url }}" name="method" value="index" onchange="sync_input_radio(event)" {% if status.method !="next" %}checked{% endif %}/>
+          <label class="radio" for="index{{ url }}">Menu</label>
+          <label class="radio">{ '</label>
+          <input class="table" id="index_tag_k{{ url }}" name="index_tag_k" style="width: 30px; margin: 0" onfocusout="sync_input(event)" value="{{ status.index_tag_k }}" placeholder="class">
+          <label class="radio" style="margin:0">' : '</label>
+          <input class="table" id="index_tag_v{{ url }}" name="index_tag_v" style="width: 56px; margin: 0" onfocusout="sync_input(event)" value="{{ status.index_tag_v }}" placeholder="list clearfix">
+          <label class="radio" style="margin:0">' }</label>
+        </th>
+        <th rowspan="3" style="width:36%">
+          <textarea id="intro{{ url }}" name="intro" onfocusout="sync_input(event)" cols="40" style="width: 92%; min-height: 80px" placeholder="title 作者：author&#10;intro&#10;内容标签：tagg1 tag2 tag3">{{ status.intro }}</textarea>
+        </th>
+      </tr>
+      <tr>
+        <td>
+          <input class="table" name="cover_url" value="" id="cover_url{{ url }}" onfocusout="send_cover_url(this)" placeholder="http://cover_url">
+        </td>
+        <td>
+          <input class="table" type="radio" id="next{{ url }}" name="method" value="next" onchange="sync_input_radio(event)" {% if status.method =="next" %}checked{% endif %}/>
+          <label class="radio" for="next{{ url }}">Next</label>
+          <input class="table" id="next_tag{{ url }}" name="next_tag" onfocusout="sync_input(event)" value="{{ status.next_tag }}" style="margin-left: 36px; width: 118px" placeholder="下一页">
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <form id="form{{ url }}" enctype="multipart/form-data" method="post">
+            <input class="table" type="file" id="cover{{ url }}" name="cover" accept="image/*"
+                   onchange="send_cover(this)"/>
+          </form>
+        </td>
+        <td>
+          <label class="radio">Content tag</label>
+          <label class="radio">{ '</label>
+          <input class="table" id="content_tag_k{{ url }}" name="content_tag_k" onfocusout="sync_input(event)" value="{{ status.content_tag_k }}" style="width: 30px; margin: 0" placeholder="id">
+          <label class="radio" style="margin:0">' : '</label>
+          <input class="table" id="content_tag_v{{ url }}" name="content_tag_v" onfocusout="sync_input(event)" value="{{ status.content_tag_v }}" style="width: 56px; margin: 0" placeholder="text">
+          <label class="radio" style="margin:0">' }</label>
+        </td>
+      </tr>
+      <tr>
+        <td><img id="image{{ url }}" src="{{ url_for('ebk_download', file_path=status.image) if status.image else '#' }}" style="height: 80px" alt="image preview"/></td>
+        <td>
+          <textarea id="content{{ url }}" cols="40" style="width: 92%; min-height: 80px" placeholder="Book content:">{{ status.content }}</textarea>
+        </td>
+        <td>
+          <textarea id="chap{{ url }}" cols="40" style="width: 92%; min-height: 80px" placeholder="章节预览：">{{ status.chapter }}</textarea>
+        </td>
+      </tr>
+    </table>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}

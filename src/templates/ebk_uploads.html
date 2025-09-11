@@ -1,0 +1,48 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% if txt_files|length > 0 %}
+{% block header %}
+<div>
+    <h3 style="display:inline-block">{% block title %}Resources and Info:{% endblock %}</h3>
+</div>
+{% endblock %}
+<div id="files_to_convert" style="padding-left: 12px">
+    {% for file, status in txt_files.items() %}
+    <button type="button" class="collapsible {{ status.is_collapsed }}" name="collapsible_local" onclick="toggle_collapse(event)" oncontextmenu="onItemMenu(event)">{{ file }}</button>
+    <div class="collapsible_content" {% if status.is_collapsed %}style="display:block"{% endif %}>
+        <label class="gray">Optional meta info:</label>
+        {% for format in ['azw', 'mobi', 'pdf', 'txt', 'epub'] %}
+        {% set file_path = status[format] %}
+        <a id="{{ format }}{{ file }}" data-label="{{ file_path }}" {% if file_path|length > 0 %}href="{{ url_for('ebk_download', file_path=file_path) }}" style="float: right; margin-right: 2em"{% else %}style="color:lightgray; float: right; margin-right: 2em"{% endif %} download="">{{ format }}</a>
+        {% endfor %}
+<!--        <a id="epub{{ file }}" {% if status.epub|length > 0 %}href="{{ url_for('ebk_download', file_path=status.epub) }}" style="float: right; margin-right: 2em"{% else %}style="color:lightgray; float: right; margin-right: 2em"{% endif %} download="">EPUB</a>-->
+<!--        <a id="txt{{ file }}" href="{{ url_for('ebk_download', file_path=status.txt) }}" download="{{ file }}" style="float: right; margin-right: 2em">TXT</a>-->
+        <table>
+            <tr>
+                <th style="width: 16rem"><label class="radio" style="color:dimgray; font-style: italic;">Input cover image:</label></th>
+                <th rowspan="3">
+                    <textarea id="intro{{ file }}" name="intro" cols="60" style="width: 96%; min-height: 80px" onfocusout="sync_input(event)" placeholder="title 作者：author&#10;intro&#10;内容标签：tagg1 tag2 tag3">{{ status.intro }}</textarea>
+                </th>
+            </tr>
+            <tr>
+                <td>
+                    <input class="table" name="cover_url" value="" id="cover_url{{ file }}" onfocusout="send_cover_url(this)" placeholder="http://cover_url">
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <form id="form{{ file }}" enctype="multipart/form-data" method="post">
+                        <input class="table" type="file" id="cover{{ file }}" name="cover" accept="image/*"
+                               onchange="send_cover(this)"/>
+                    </form>
+                </td>
+            </tr>
+            <tr>
+                <td><img id="image{{ file }}" src="{{ url_for('ebk_download', file_path=status.image) if status.image else '#' }}" style="height: 80px" alt="image preview"/></td>
+                <td><textarea id="info{{ file }}" cols="60" style="width: 96%; min-height: 80px" placeholder="章节预览：">{{ status.chapter }}</textarea>
+                </td>
+            </tr>
+        </table>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}

@@ -1,0 +1,66 @@
+<!doctype html>
+<head>
+    <title>Flask Dynamic Data</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+    <script>
+        function folder_updater(input, select, type, directory) {
+            console.log("Updating dir: type = " + type + " ; dir = " + directory);
+            $.post("/update_dir", {id:type, dir:directory}, function(response) {
+                console.log("Updated dir: type = " + type + " ; dir = " + response.dir);
+                input.value = response.dir;
+                $.post('/list_subfolders', {"cur_dir": response.dir}, function (response) {
+                    let folders = response['folders'];
+                    console.log("subfolders = " + folders);
+                    let options = select.options;
+                    for (let i = options.length - 1; i >= 0; i--) {
+                        select.remove(i);
+                    }
+                    for (let folder of folders) {
+                        select.options.add(new Option(folder, folder));
+                    }
+                });
+            })
+        }
+
+        function folder_input(event) {
+            console.log(event.target);
+            let input = event.target;
+            let select = input.nextElementSibling;
+            let type = input.id;
+            let directory = input.value;
+            folder_updater(input, select, type, directory);
+        }
+
+        function folder_selected(event) {
+            let select = event.target;
+            let input = select.previousElementSibling;
+            let type = input.id;
+            let directory = select.value;
+            folder_updater(input, select, type, directory);
+        }
+
+        function update_config(event) {
+            console.log(event.target);
+            $.post("/update_config", {key:event.target.id, value:event.target.value}, function(response) {
+                if (response.code === 200) {
+                    console.log("Updated " + event.target.id + " = " + event.target.value)
+                }
+            })
+        }
+    </script>
+</head>
+<title>{% block title %}{% endblock %} - XXM Toolbox</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<nav>
+    <h1><a href="{{ url_for('index') }}">XXM Toolbox</a></h1>
+</nav>
+
+<section class="content">
+    <header>
+        {% block header %}{% endblock %}
+    </header>
+    {% for message in get_flashed_messages() %}
+    <div class="flash">{{ message }}</div>
+    {% endfor %}
+    {% block content %}{% endblock %}
+</section>
