@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# git clone https://github.com/jarlvagrant/yt-dlp-mini-web .
+# git clone https://github.com/jarlvagrant/calibre-mini-web .
 
 git pull
 pip install --upgrade pip

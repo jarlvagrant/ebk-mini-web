@@ -198,6 +198,8 @@ def getKindleGenBin():
 		executable += '-mac'
 	return executable
 
+def getCalibreCli():
+	return "ebook-convert"
 
 def randomRGB():
 	return random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)

@@ -14,7 +14,7 @@ from flask import typing as ft, render_template, Response, request, jsonify, sen
 from flask.views import View
 
 from EbookUtils import clean_txt, EbookWebExtractor, EpubConverter, getKindleGenBin, LocalBookStatus, UrlBookStatus, \
-	extractHtmlImage
+	extractHtmlImage, getCalibreCli
 from Utils import ConfigIO, SendEmail, getInitialFolder, getSubfolders, log_path, read_binary_file, SymlinkIO, ImageIO
 
 logger = logging.getLogger(__name__)
@@ -363,10 +363,10 @@ def epubToMobi(file_name, source_ext):
 		return 501, f"Failed converting: source path error: {file_name}{source_ext}!", ''
 	epub_path = file_name + source_ext
 	mobi_path = file_name + '.mobi'
-	gen = getKindleGenBin()
+	gen = getCalibreCli()
 	res, message, output = 502, f"Failed converting {gen}, {epub_path}, '-o', {mobi_path}!", ''
 	try:
-		subprocess.check_call([gen, epub_path])
+		subprocess.check_call([gen, epub_path, mobi_path])
 	except subprocess.CalledProcessError as e:
 		logger.error(e)
 		res, message, output = 503, "Failed converting: " + e.__str__(), ''
