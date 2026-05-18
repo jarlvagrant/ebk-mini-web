@@ -20,19 +20,19 @@
             <tr>
                 <th style="width: 16rem"><label class="radio" style="color:dimgray; font-style: italic;">Input cover image:</label></th>
                 <th rowspan="3">
-                    <textarea id="intro{{ file }}" name="intro" cols="60" style="width: 96%; min-height: 80px" onfocusout="sync_input(event)" placeholder="title 作者：author&#10;intro&#10;内容标签：tagg1 tag2 tag3">{{ status.intro }}</textarea>
+                    <textarea id="intro{{ file }}" name="intro" cols="60" style="width: 96%; min-height: 80px" onfocusout="sync_item_args(event)" placeholder="title 作者：author&#10;intro&#10;内容标签：tagg1 tag2 tag3">{{ status.intro }}</textarea>
                 </th>
             </tr>
             <tr>
                 <td>
-                    <input class="table" name="cover_url" value="" id="cover_url{{ file }}" onfocusout="send_cover_url(this)" placeholder="http://cover_url">
+                    <input class="table" name="cover_url" value="" id="cover_url{{ file }}" onfocusout="sync_item_cover_url(this)" placeholder="http://cover_url">
                 </td>
             </tr>
             <tr>
                 <td>
                     <form id="form{{ file }}" enctype="multipart/form-data" method="post">
                         <input class="table" type="file" id="cover{{ file }}" name="cover" accept="image/*"
-                               onchange="send_cover(this)"/>
+                               onchange="sync_item_cover(this)"/>
                     </form>
                 </td>
             </tr>

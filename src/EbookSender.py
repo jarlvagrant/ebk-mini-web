@@ -327,52 +327,34 @@ class EbookConverterTask(View):
 class EbookToFormat(View):
 	def dispatch_request(self) -> ft.ResponseReturnValue:
 		file_path = request.form.get('file_path', '')
-		target_ext = request.form.get('target', '')
-		file_name, source_ext = os.path.splitext(file_path)
-		res, message, epub, mobi = 200, '', '', ''
-		logger.error(f"file->{file_path}, is file->{os.path.isfile(file_path)} target->{target_ext}")
-		if not (file_path and os.path.isfile(file_path) and target_ext):
-			return jsonify(code=500, message=f"Failed converting: missing info: file->{file_path}, target->{target_ext}")
+		ext_from = request.form.get('from', '')
+		ext_to = request.form.get('to', '')
+		return ext_from_to(file_path, ext_from, ext_to)
 
-		if source_ext == '.txt' and target_ext == '.mobi':
-			_, message, epub = txtToEpub(file_name, source_ext)
-			source_ext = '.epub'
-		if source_ext == '.txt' and target_ext == '.epub':
-			res, temp, epub = txtToEpub(file_name, source_ext)
-			message += '\n' + temp
-		elif source_ext == '.epub' and target_ext == '.mobi':
-			res, temp, mobi = epubToMobi(file_name, source_ext)
-			message += '\n' + temp
-		return jsonify(code=res, message=message, epub=epub, mobi=mobi)
 
-def txtToEpub(file_name, source_ext):
-	if not (file_name and source_ext == '.txt' and os.path.isfile(file_name + source_ext)):
-		return 501, f"Failed converting: source path error: {file_name}{source_ext}!", ''
-	txt_path = file_name + source_ext
-	epub_path = file_name + '.epub'
-	converter = EpubConverter(clean_txt(read_binary_file(txt_path)), "", None, clean_txt(Path(txt_path).stem),
-		                          os.path.dirname(txt_path))
-	output = converter.convert()
-	res, message, output = 501, f"Failed converting {txt_path} to {epub_path}, output->{output}!", output
-	if os.path.isfile(epub_path):
-		res, message, output = 200, f"Succeed converting {txt_path} to {epub_path}!", epub_path
-	return res, message, output
+def ext_from_to(file_path, ext_from, ext_to):
+	input_path = file_path + "." + ext_from
+	output_path = file_path + "." + ext_to
+	if not (input_path and os.path.isfile(input_path)):
+		msg = f"Missing input file->{input_path}"
+		logger.error(msg)
+		return jsonify(code=500, message=msg, output="")
 
-def epubToMobi(file_name, source_ext):
-	if not (file_name and source_ext == '.epub' and os.path.isfile(file_name + source_ext)):
-		return 501, f"Failed converting: source path error: {file_name}{source_ext}!", ''
-	epub_path = file_name + source_ext
-	mobi_path = file_name + '.mobi'
-	gen = getCalibreCli()
-	res, message, output = 502, f"Failed converting {gen}, {epub_path}, '-o', {mobi_path}!", ''
-	try:
-		subprocess.check_call([gen, epub_path, mobi_path])
-	except subprocess.CalledProcessError as e:
-		logger.error(e)
-		res, message, output = 503, "Failed converting: " + e.__str__(), ''
-	if os.path.isfile(mobi_path):
-		res, message, output = 200, f"Succeed converting {epub_path} to {mobi_path}!", mobi_path
-	return res, message, output
+	if ext_from == 'txt' and ext_to == 'epub':
+		converter = EpubConverter(clean_txt(read_binary_file(input_path)), "", None,
+	                          clean_txt(Path(input_path).stem), os.path.dirname(input_path))
+		output_path = converter.convert()
+		if os.path.isfile(output_path):
+			return jsonify(code=200, message=f"Succeed converting {input_path} to {output_path}!", output=output_path)
+	else:
+		gen = getCalibreCli()
+		try:
+			subprocess.check_call([gen, input_path, output_path])
+		except subprocess.CalledProcessError as e:
+			logger.error(f"Error converting {input_path} to {output_path}: {e}")
+		if os.path.isfile(output_path):
+			return jsonify(code=200, message=f"Succeed converting {input_path} to {output_path}!", output=output_path)
+	return jsonify(code=501, message=f"Failed converting {input_path} to {output_path}", output="")
 
 
 class EbookCover(View):

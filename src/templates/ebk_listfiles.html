@@ -52,13 +52,23 @@
     <ul>
         <li id="preview">Preview</li>
         <li id="rename">Rename</li>
-        <li id="edit" style="border-top: 1px solid darkgray">Edit</li>
-        <li id="txt_to_epub">Convert txt -> ePub</li>
-        <li id="txt_to_mobi">Convert txt -> Mobi</li>
-        <li id="epub_to_mobi">Convert ePub -> Mobi</li>
-        <li id="convert_pdf">Convert PDF</li>
+        <li id="edit">Edit</li>
         <li id="email">Email</li>
-        <li id="delete">Delete</li>
+        <li id="delete" style="border-bottom: 1px solid darkgray">Delete</li>
+        <li id="txt" value=1>Convert txt -> </li>
+        <li id="pdf" value=1>Convert PDF -> </li>
+        <li id="epub" value=1>Convert ePub -> </li>
+        <li id="mobi" value=1>Convert Mobi -> </li>
+        <li id="azw" value=1>Convert azw -> </li>
+    </ul>
+</div>
+<div id="subMenu" class="context-menu" style="display:none">
+    <ul>
+        <li id="to_txt"> txt </li>
+        <li id="to_pdf"> PDF </li>
+        <li id="to_epub"> ePub </li>
+        <li id="to_mobi"> Mobi </li>
+        <li id="to_azw"> azw </li>
     </ul>
 </div>
 <div id="preview_div" class="preview-div" style="display:none;position: absolute">
@@ -67,6 +77,14 @@
 </div>
 <script>
     $("#main").load("/ebk_listfiles_main");
+
+    const actions = {
+        "preview": (event, id) => preview(event, id),
+        "rename": (event, id) => rename(id),
+        "edit": (event, id) => edit(id),
+        "email": (event, id) => email(id),
+        "delete": (event, id) => delete_file(id)
+    };
 
     function toggle_collapse_folder(input) {
         let id = input.parentElement.dataset.label;
@@ -83,11 +101,31 @@
 
     function hideItemMenu() {
         document.getElementById("contextMenu").style.display = "none"
+        document.getElementById("subMenu").style.display = "none"
+    }
+
+    function onSubMenu(x, y, id, from) {
+        console.log(id + ', ' + from)
+        let menu = document.getElementById("subMenu")
+        menu.style.display = 'block';
+        menu.style.left = (x + 150) + "px";
+        menu.style.top = y + "px";
+        // console.log("menu.style.left " + menu.style.left)
+        // console.log("menu.style.top " + menu.style.top)
+
+        const nestedLists = menu.querySelectorAll('li');
+        nestedLists.forEach(li => {
+            disable_context_option(li.id, ("to_" + from) === li.id);
+            li.addEventListener('click', (menuEvent) => {
+                ebk_to_format(id, from, li.id.substring(3))
+                hideItemMenu();
+            });
+        });
     }
 
     function onItemMenu(event, parent) {
         let id = parent + event.target.innerText
-        console.log(id);
+        console.log("open menu on: " + id);
         event.preventDefault();
         let menu = document.getElementById("contextMenu")
         if (menu.style.display === "block")
@@ -96,49 +134,23 @@
             menu.style.display = 'block';
             menu.style.left = event.pageX + "px";
             menu.style.top = event.pageY + "px";
-            let txt_path = get_ext_path(id, '.txt')
-            let epub_path = get_ext_path(id, '.epub')
-            disable_context_option('preview', txt_path === '')
-            disable_context_option('txt_to_epub', txt_path === '')
-            disable_context_option('txt_to_mobi', txt_path === '')
-            disable_context_option('epub_to_mobi', epub_path === '')
-            disable_context_option('email', epub_path === '')
-            document.getElementById("preview").onclick = function handle_preview() {
-                preview(event, txt_path);
-                hideItemMenu();
-            }
-            document.getElementById("edit").onclick = function handle_edit() {
-                edit(event, id);
-                hideItemMenu();
-            }
-            document.getElementById("rename").onclick = function handle_rename() {
-                rename(event, id);
-                hideItemMenu();
-            }
-            document.getElementById("txt_to_epub").onclick = function handle_txt_epub() {
-                ebk_to_format(id, '.epub', txt_path);
-                hideItemMenu();
-            }
-            document.getElementById("txt_to_mobi").onclick = function handle_txt_mobi() {
-                ebk_to_format(id, '.mobi', txt_path);
-                hideItemMenu();
-            }
-            document.getElementById("epub_to_mobi").onclick = function handle_epub_mobi() {
-                ebk_to_format(id, '.mobi', epub_path);
-                hideItemMenu();
-            }
-            document.getElementById("convert_pdf").onclick = function handle_convert_pdf() {
-                convert_pdf(event, id);
-                hideItemMenu();
-            }
-            document.getElementById("email").onclick = function handle_email() {
-                email(epub_path);
-                hideItemMenu();
-            }
-            document.getElementById("delete").onclick = function handle_delete() {
-                delete_file(event, id);
-                hideItemMenu();
-            }
+            // const contextMenu = document.querySelector('#contextMenu');
+            const nestedLists = menu.querySelectorAll('li');
+            nestedLists.forEach(li => {
+                if (li.value === 1) {
+                    disable_context_option(li.id, get_ext_path(id, '.' + li.id) === '')
+                }
+                li.addEventListener('click', (menuEvent) => {
+                    console.log('A LI in the context menu was clicked!', menuEvent.currentTarget.value);
+                    let menu_id = menuEvent.currentTarget.id
+                    if (menuEvent.currentTarget.value === 1) {
+                        onSubMenu(event.pageX, menuEvent.pageY, id, menu_id)
+                    } else {
+                        actions[menu_id](event, id);
+                        hideItemMenu();
+                    }
+                });
+            });
         }
     }
 
@@ -162,7 +174,12 @@
         }
     }
 
-    function preview(event, file_path) {
+    function preview(event, id) {
+        let file_path = get_ext_path(id + ".txt");
+        if (file_path === "") {
+            console.log("preview " + file_path + ": txt format not available");
+            return;
+        }
         console.log("preview " + file_path);
         $.post("/ebk_preview", {'file_path': file_path}, function (response) {
             if (response.code === 200) {
@@ -184,44 +201,52 @@
         view.style.display = "none";
     }
 
-    function ebk_to_format(id, target, file_path) {
-        console.log("convert to " + target + ': ' + file_path);
-        $.post("/ebk_to_format", {'file_path': file_path, 'target': target}, function (response) {
-            if (response.epub && response.epub.length > 0) {
-                let epub = document.getElementById(id +".epub");
-                epub.href = "ebk_download?file_path=" + response.epub;
-                epub.style.color = "#377ba8";
+    function ebk_to_format(id, from, to) {
+        console.log("convert " + id + ': from ' + from + " to " + to);
+        $.post("/ebk_to_format", {'file_path': id, 'from': from, 'to': to}, function (response) {
+            if (response.output && response.output.length > 0) {
+                let output = document.getElementById(id + to);
+                output.href = "ebk_download?file_path=" + response.output;
+                output.style.display = "#377ba8";
             }
-            if (response.mobi && response.mobi.length > 0) {
-                let mobi = document.getElementById(id + '.mobi');
-                mobi.href = "ebk_download?file_path=" + response.mobi;
-                mobi.style.color = "#377ba8";
-            }
-            alert(response.message);
         });
+        // $.post("/ebk_to_format", {'file_path': file_path, 'target': target}, function (response) {
+        //     if (response.epub && response.epub.length > 0) {
+        //         let epub = document.getElementById(id +".epub");
+        //         epub.href = "ebk_download?file_path=" + response.epub;
+        //         epub.style.color = "#377ba8";
+        //     }
+        //     if (response.mobi && response.mobi.length > 0) {
+        //         let mobi = document.getElementById(id + '.mobi');
+        //         mobi.href = "ebk_download?file_path=" + response.mobi;
+        //         mobi.style.color = "#377ba8";
+        //     }
+        //     alert(response.message);
+        // });
     }
 
-    function edit(event, dp) {
-        alert("function is not ready")
+    function edit(id) {
+        console.log("edit " + id);
     }
 
-    function rename(event, dp) {
-        alert("function is not ready")
+    function rename(id) {
+        console.log("rename " + id);
     }
 
-    function convert_pdf(event, dp) {
-        alert("function is not ready")
-    }
-
-    function email(epub_path) {
-        console.log("request sending email with attachment: " + epub_path);
+    function email(id) {
+        const epub_path = get_ext_path(id + ".epub");
+        if (epub_path === "") {
+            window.alert("Email " + id + ": epub format is not available");
+            return;
+        }
+        console.log("request sending email with attachment: " + id);
         $.post("/ebk_email", {'paths[]': [epub_path]}, function (response) {
             window.alert(response.message);
         });
     }
 
-    function delete_file(event, dp) {
-        console.log("delete");
+    function delete_file(id) {
+        console.log("delete " + id);
     }
 
     function revert_selected() {

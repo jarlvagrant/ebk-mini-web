@@ -5,8 +5,8 @@
 <div class="right">
     <div id="epub_folder">
         <label class="gray" for="ebook_dir" style="margin-right: 5px">Save to: </label>
-        <input class="gray" id="ebook_dir" value="{{ ebook_dir }}" onfocusout="folder_input(event)"/>
-        <select class="gray" onchange="folder_selected(event)" style="width:26px">
+        <input class="gray" id="ebook_dir" value="{{ ebook_dir }}" onfocusout="input_dir(event)"/>
+        <select class="gray" onchange="select_dir(event)" style="width:26px">
             {% for folder in folders %}
             <option value={{ folder }}>{{ folder }}</option>
             {% endfor %}
@@ -14,7 +14,7 @@
     </div>
     <div>
         <label class="gray" for="email to">Email to: </label>
-        <input class="gray" id="email to" value="{{ recipient }}" type="email" onfocusout="update_config(event)"/>
+        <input class="gray" id="email to" value="{{ recipient }}" type="email" onfocusout="input_email(event)"/>
     </div>
 </div>
 {% endblock %}
@@ -46,7 +46,7 @@
     </tr>
 </table>
 <div align="right" style="margin-top: 1em">
-    <button type="button" id="extract_content_all" style="margin-right: 1em" onclick="extract_content_all()">Extract all</button>
+    <button type="button" id="extract_all" style="margin-right: 1em" onclick="extract_all()">Extract all</button>
     <button type="button" id="convert_all" style="margin-right: 1em" onclick="convert_all()">Convert all</button>
     <button type="button" id="send_all" style="margin-right: 1em" onclick="email_epub_all()">Email ePubs</button>
     <button type="button" id="remove_all" style="margin-right: 1em" onclick="remove_all()">Clear</button>
@@ -71,7 +71,8 @@
     $("#uploads").load("/ebk_uploads");
     $("#urls").load("/ebk_urls");
 
-    function sync_input(event) {
+    // post book args e.g. content tag id=id tag=tag
+    function sync_item_args(event) {
         let sub_key = event.target.name
         let key = event.target.id.replace(sub_key, '');
         let value = event.target.value;
@@ -82,7 +83,8 @@
         })
     }
 
-    function sync_input_radio(event) {
+    // post book args e.g. extract by index or next page
+    function sync_item_args_radio(event) {
         let sub_key = event.target.name
         let value = document.querySelector('input[name="method"]:checked').value
         let key = event.target.id.replace(value, '');
@@ -93,7 +95,7 @@
         })
     }
 
-    function send_cover_url(e) {
+    function sync_item_cover_url(e) {
         let part = e.id.replace("cover_url", "");
         let image_id = e.id.replace("cover_url", "image")
         let image = document.getElementById(image_id)
@@ -111,7 +113,7 @@
         })
     }
 
-    async function send_cover(e) {
+    async function sync_item_cover(e) {
         let part = e.id.replace("cover", "")
         let image_id = e.id.replace("cover", "image")
         let image = document.getElementById(image_id)
@@ -129,53 +131,7 @@
         }
     }
 
-    function hideItemMenu() {
-        if (! event.target.classList.contains('collapsible') || event.pageX >= 80)
-            document.getElementById("contextMenu").style.display = "none"
-    }
-
-    function onItemMenu(event) {
-        event.preventDefault();
-        let menu = document.getElementById("contextMenu")
-        if (menu.style.display === "block")
-            document.getElementById("contextMenu").style.display = "none"
-        else {
-            menu.style.display = 'block';
-            menu.style.left = event.pageX + "px";
-            menu.style.top = event.pageY + "px";
-            if (event.target.name === "collapsible_local") {
-                document.getElementById("context_menu_extract").style.display = "none";
-                document.getElementById("context_menu_extract_email").style.display = "none";
-                document.getElementById("context_menu_convert").style.display = "block";
-                document.getElementById("context_menu_convert_email").style.display = "block";
-            } else {
-                document.getElementById("context_menu_extract").style.display = "block";
-                document.getElementById("context_menu_extract_email").style.display = "block";
-                document.getElementById("context_menu_convert").style.display = "none";
-                document.getElementById("context_menu_convert_email").style.display = "none";
-            }
-            document.getElementById("context_menu_extract").onclick = function handle_extract() {
-                extract_content(event.target, false);
-            };
-            document.getElementById("context_menu_extract_email").onclick = function handle_extract() {
-                extract_content(event.target, true);
-            };
-            document.getElementById("context_menu_convert").onclick = function handle_convert() {
-                convert(event.target, false);
-            };
-            document.getElementById("context_menu_convert_email").onclick = function handle_convert() {
-                convert(event.target, true);
-            };
-            document.getElementById("context_menu_email").onclick = function handle_email() {
-                email_epub(event.target);
-            };
-            document.getElementById("context_menu_remove").onclick = function handle_remove() {
-                remove_item(event.target, event.target.name);
-            };
-        }
-    }
-
-    function extract_content(input, to_email=false) {
+    function extract(input, to_email=false) {
         let part = input.innerText;
         if (document.getElementById('txt' + part).href) {
             let answer = confirm(part + " txt exist, overwrite?")
@@ -204,7 +160,7 @@
         });
     }
 
-    function extract_content_all() {
+    function extract_all() {
         let items = document.getElementsByName("collapsible_web");
         if (items.length === 0) {
             alert("No items in extract list");
@@ -280,30 +236,6 @@
         }
         for (let i = 0; i < items.length; i++) {
             convert(items[i]);
-        }
-    }
-
-    function toggle_collapse(event) {
-        if (event.pageX < 80) {
-            onItemMenu(event)
-        } else {
-            let input = event.target;
-            let is_collapsed = input.classList.toggle('active');
-            let content = input.nextElementSibling;
-            if (content.style.display === "block") {
-                content.style.display = "none";
-            } else {
-                content.style.display = "block";
-            }
-            let value = ""
-            if (is_collapsed) {
-                value = "active"
-            }
-            $.post("/ebk_sync_input", {"key": input.innerText, "sub_key": "is_collapsed", "value": value}, function (response) {
-                if (response.code === 200) {
-                    console.log("Sync input " + input.innerText + ": is_collapsed" + "=" + value);
-                }
-            })
         }
     }
 
@@ -394,5 +326,76 @@
             $("#urls").load("/ebk_urls");
         });
     }
+
+    function hideItemMenu() {
+        if (! event.target.classList.contains('collapsible') || event.pageX >= 80)
+            document.getElementById("contextMenu").style.display = "none"
+    }
+
+    function onItemMenu(event) {
+        event.preventDefault();
+        let menu = document.getElementById("contextMenu")
+        if (menu.style.display === "block")
+            document.getElementById("contextMenu").style.display = "none"
+        else {
+            menu.style.display = 'block';
+            menu.style.left = event.pageX + "px";
+            menu.style.top = event.pageY + "px";
+            if (event.target.name === "collapsible_local") {
+                document.getElementById("context_menu_extract").style.display = "none";
+                document.getElementById("context_menu_extract_email").style.display = "none";
+                document.getElementById("context_menu_convert").style.display = "block";
+                document.getElementById("context_menu_convert_email").style.display = "block";
+            } else {
+                document.getElementById("context_menu_extract").style.display = "block";
+                document.getElementById("context_menu_extract_email").style.display = "block";
+                document.getElementById("context_menu_convert").style.display = "none";
+                document.getElementById("context_menu_convert_email").style.display = "none";
+            }
+            document.getElementById("context_menu_extract").onclick = function handle_extract() {
+                extract(event.target, false);
+            };
+            document.getElementById("context_menu_extract_email").onclick = function handle_extract() {
+                extract(event.target, true);
+            };
+            document.getElementById("context_menu_convert").onclick = function handle_convert() {
+                convert(event.target, false);
+            };
+            document.getElementById("context_menu_convert_email").onclick = function handle_convert() {
+                convert(event.target, true);
+            };
+            document.getElementById("context_menu_email").onclick = function handle_email() {
+                email_epub(event.target);
+            };
+            document.getElementById("context_menu_remove").onclick = function handle_remove() {
+                remove_item(event.target, event.target.name);
+            };
+        }
+    }
+
+    function toggle_collapse(event) {
+        if (event.pageX < 80) {
+            onItemMenu(event)
+        } else {
+            let input = event.target;
+            let is_collapsed = input.classList.toggle('active');
+            let content = input.nextElementSibling;
+            if (content.style.display === "block") {
+                content.style.display = "none";
+            } else {
+                content.style.display = "block";
+            }
+            let value = ""
+            if (is_collapsed) {
+                value = "active"
+            }
+            $.post("/ebk_sync_input", {"key": input.innerText, "sub_key": "is_collapsed", "value": value}, function (response) {
+                if (response.code === 200) {
+                    console.log("Sync input " + input.innerText + ": is_collapsed" + "=" + value);
+                }
+            })
+        }
+    }
+
 </script>
 {% endblock %}
