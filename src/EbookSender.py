@@ -57,7 +57,7 @@ class EbookSyncOutput(View):
 		return jsonify(code=200, content=content, chapter=chapter, txt=txt, epub=e_pub, stop=stop, message=message)
 
 
-file_types = ['epub', 'txt', 'pdf', 'mobi', 'azw']
+file_types = ['epub', 'txt', 'pdf', 'mobi', 'azw3']
 
 
 class EbookListfiles(View):
@@ -331,6 +331,11 @@ class EbookToFormat(View):
 		ext_to = request.form.get('to', '')
 		return ext_from_to(file_path, ext_from, ext_to)
 
+calibre_args = {'txt': [],
+                'epub': [],
+                'mobi': [],
+                'azw3': [],
+				'pdf': ["--chapter", "//h:h1", "--chapter-mark", "pagebreak", "--page-breaks-before", "//h:h1"]}
 
 def ext_from_to(file_path, ext_from, ext_to):
 	input_path = file_path + "." + ext_from
@@ -349,7 +354,8 @@ def ext_from_to(file_path, ext_from, ext_to):
 	else:
 		gen = getCalibreCli()
 		try:
-			subprocess.check_call([gen, input_path, output_path])
+			command = [gen, input_path, output_path] + calibre_args[ext_to]
+			subprocess.check_call(command)
 		except subprocess.CalledProcessError as e:
 			logger.error(f"Error converting {input_path} to {output_path}: {e}")
 		if os.path.isfile(output_path):

@@ -10,9 +10,9 @@
     <button type="button" class="collapsible {{ status.is_collapsed }}" name="collapsible_local" onclick="toggle_collapse(event)" oncontextmenu="onItemMenu(event)">{{ file }}</button>
     <div class="collapsible_content" {% if status.is_collapsed %}style="display:block"{% endif %}>
         <label class="gray">Optional meta info:</label>
-        {% for format in ['azw', 'mobi', 'pdf', 'txt', 'epub'] %}
+        {% for format in ['txt', 'epub', 'pdf', 'mobi', 'azw3'] %}
         {% set file_path = status[format] %}
-        <a id="{{ format }}{{ file }}" data-label="{{ file_path }}" {% if file_path|length > 0 %}href="{{ url_for('ebk_download', file_path=file_path) }}" style="float: right; margin-right: 2em"{% else %}style="color:lightgray; float: right; margin-right: 2em"{% endif %} download="">{{ format }}</a>
+        <a id="{{ format }}{{ file }}" {% if file_path|length > 0 %}href="{{ url_for('ebk_download', file_path=file_path) }}" style="float: right; margin-right: 2em"{% else %}style="color:lightgray; float: right; margin-right: 2em"{% endif %} download="">{{ format }}</a>
         {% endfor %}
 <!--        <a id="epub{{ file }}" {% if status.epub|length > 0 %}href="{{ url_for('ebk_download', file_path=status.epub) }}" style="float: right; margin-right: 2em"{% else %}style="color:lightgray; float: right; margin-right: 2em"{% endif %} download="">EPUB</a>-->
 <!--        <a id="txt{{ file }}" href="{{ url_for('ebk_download', file_path=status.txt) }}" download="{{ file }}" style="float: right; margin-right: 2em">TXT</a>-->

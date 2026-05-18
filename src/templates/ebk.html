@@ -23,7 +23,7 @@
 <table>
     <tr>
         <form action="javascript:upload_ebooks()" enctype="multipart/form-data" method="post">
-            <td>Local files: <input class="table" type="file" id="docs" name="docs" accept=".txt,.epub,.mobi,.azw,.pdf" multiple/></td>
+            <td>Local files: <input class="table" type="file" id="docs" name="docs" accept=".txt,.epub,.mobi,.azw3,.pdf" multiple/></td>
             <td style="width: 8rem">
                 <button style="min-width: 8rem;">Upload</button>
             </td>
@@ -166,7 +166,7 @@
             alert("No items in extract list");
         }
         for (let i = 0; i < items.length; i++) {
-            extract_content(items[i]);
+            extract(items[i]);
         }
     }
 
@@ -188,7 +188,6 @@
                         let epub = document.getElementById("epub" + url)
                         epub.href = "ebk_download?file_path=" + response.epub;
                         epub.style.color = "#377ba8";
-                        epub.dataset.label = response.epub;
                     }
                     if (response.stop === true) {
                         console.log("last refresh for extractor");
@@ -220,7 +219,6 @@
                 let epub = document.getElementById("epub" + part)
                 epub.href = "ebk_download?file_path=" + response.epub;
                 epub.style.color = "#377ba8";
-                epub.dataset.label = response.epub;
             }
             if (response.chapter && response.chapter.length > 0) {
                 document.getElementById('info' + part).value = response.chapter;
@@ -277,7 +275,8 @@
     }
 
     function email_epub(input) {
-        let path = document.getElementById("epub" + input.innerText).dataset.label;
+        let path = decodeURI(document.getElementById("epub" + input.innerText).href);
+        path = path.substring(path.search("file_path=") + 10);
         if (!path || path.length === 0) {
             window.alert("Please convert/extract selected task first!");
         } else {
@@ -395,6 +394,52 @@
                 }
             })
         }
+    }
+    function get_dir_options(input, select, type, directory) {
+        console.log("Updating dir: type = " + type + " ; dir = " + directory);
+        $.post("/update_dir", {id: type, dir: directory}, function (response) {
+            console.log("Updated dir: type = " + type + " ; dir = " + response.dir);
+            input.value = response.dir;
+            $.post('/list_subfolders', {"cur_dir": response.dir}, function (response) {
+                let folders = response['folders'];
+                console.log("subfolders = " + folders);
+                let options = select.options;
+                for (let i = options.length - 1; i >= 0; i--) {
+                    select.remove(i);
+                }
+                for (let folder of folders) {
+                    select.options.add(new Option(folder, folder));
+                }
+            });
+        })
+    }
+
+    // update target directory with text input
+    function input_dir(event) {
+        console.log(event.target);
+        let input = event.target;
+        let select = input.nextElementSibling;
+        let type = input.id;
+        let directory = input.value;
+        get_dir_options(input, select, type, directory);
+    }
+
+    // update target directory with drop down menu
+    function select_dir(event) {
+        let select = event.target;
+        let input = select.previousElementSibling;
+        let type = input.id;
+        let directory = select.value;
+        get_dir_options(input, select, type, directory);
+    }
+
+    function input_email(event) {
+        console.log(event.target);
+        $.post("/update_config", {key: event.target.id, value: event.target.value}, function (response) {
+            if (response.code === 200) {
+                console.log("Updated " + event.target.id + " = " + event.target.value)
+            }
+        })
     }
 
 </script>

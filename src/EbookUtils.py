@@ -255,7 +255,7 @@ class LocalBookStatus:
 
 	def add(self, key):
 		if not self.status.get(key):
-			self.status[key] = {"is_collapsed": "", "intro": "", "image": "", "txt": "", "epub": "", "mobi": "", "pdf": "", "azw": "", "chapter": ""}
+			self.status[key] = {"is_collapsed": "", "intro": "", "image": "", "txt": "", "epub": "", "mobi": "", "pdf": "", "azw3": "", "chapter": ""}
 
 	def remove(self, key):
 		return self.status.pop(key, None)

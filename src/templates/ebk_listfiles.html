@@ -1,7 +1,7 @@
 <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 <a href="{{ url_for('ebook') }}">
-    <button type="button">< Back</button>
+    <button type="button">&lt; Back</button>
 </a>
 {% block header %}
 <div>
@@ -56,19 +56,19 @@
         <li id="email">Email</li>
         <li id="delete" style="border-bottom: 1px solid darkgray">Delete</li>
         <li id="txt" value=1>Convert txt -> </li>
-        <li id="pdf" value=1>Convert PDF -> </li>
         <li id="epub" value=1>Convert ePub -> </li>
+        <li id="pdf" value=1>Convert PDF -> </li>
         <li id="mobi" value=1>Convert Mobi -> </li>
-        <li id="azw" value=1>Convert azw -> </li>
+        <li id="azw3" value=1>Convert azw3 -> </li>
     </ul>
 </div>
 <div id="subMenu" class="context-menu" style="display:none">
     <ul>
         <li id="to_txt"> txt </li>
-        <li id="to_pdf"> PDF </li>
         <li id="to_epub"> ePub </li>
+        <li id="to_pdf"> PDF </li>
         <li id="to_mobi"> Mobi </li>
-        <li id="to_azw"> azw </li>
+        <li id="to_azw3"> azw3 </li>
     </ul>
 </div>
 <div id="preview_div" class="preview-div" style="display:none;position: absolute">
@@ -205,24 +205,13 @@
         console.log("convert " + id + ': from ' + from + " to " + to);
         $.post("/ebk_to_format", {'file_path': id, 'from': from, 'to': to}, function (response) {
             if (response.output && response.output.length > 0) {
-                let output = document.getElementById(id + to);
-                output.href = "ebk_download?file_path=" + response.output;
-                output.style.display = "#377ba8";
+                let item = document.getElementById(id + '.' + to);
+                item.href = "ebk_download?file_path=" + response.output;
+                item.style.color = "#377ba8";
+            } else {
+                alert(response.message);
             }
         });
-        // $.post("/ebk_to_format", {'file_path': file_path, 'target': target}, function (response) {
-        //     if (response.epub && response.epub.length > 0) {
-        //         let epub = document.getElementById(id +".epub");
-        //         epub.href = "ebk_download?file_path=" + response.epub;
-        //         epub.style.color = "#377ba8";
-        //     }
-        //     if (response.mobi && response.mobi.length > 0) {
-        //         let mobi = document.getElementById(id + '.mobi');
-        //         mobi.href = "ebk_download?file_path=" + response.mobi;
-        //         mobi.style.color = "#377ba8";
-        //     }
-        //     alert(response.message);
-        // });
     }
 
     function edit(id) {
