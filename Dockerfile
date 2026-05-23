@@ -21,7 +21,8 @@ RUN  apt-get update && \
     wget \
     xz-utils \
     ca-certificates \
-    libasound2t64
+    libasound2t64 \
+    libraqm-dev
 
 # 2. Run the installer
 # We use /opt as the base; the installer creates /opt/calibre/
@@ -50,4 +51,4 @@ EXPOSE 8008
 # Run the application
 #CMD ["sh", "-c", "/app/wrapper-run.sh"]
 
-#CMD ["python3"]
+CMD ["python3", "src/WebTools.py"]
