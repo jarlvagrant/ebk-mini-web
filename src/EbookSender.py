@@ -427,3 +427,19 @@ def remove_cached_files(item):
 	image = item.get("image")
 	if image and os.path.isfile(image):
 		os.remove(image)
+
+class EbookRenameItem(View):
+	def dispatch_request(self) -> ft.ResponseReturnValue:
+		cur_name = request.form.get('curName')
+		new_name = request.form.get('newName')
+		cur_path = request.form.get('path')
+		new_path = cur_path.removesuffix(cur_name) + new_name
+		code, msg = 200, ""
+
+		for t in file_types:
+			if os.path.isfile(cur_path + "." + t):
+				os.rename(cur_path + "." + t, new_path + '.' + t)
+				if not os.path.isfile(new_path + "." + t):
+					code = 401
+					msg += f"File {new_path}.{t} not found."
+		return jsonify(code=code, message=msg, path=new_path)

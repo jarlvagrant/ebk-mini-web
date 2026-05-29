@@ -51,7 +51,7 @@
 <div id="contextMenu" class="context-menu" style="display:none">
     <ul>
         <li id="preview" onclick="preview(event)">Preview</li>
-        <li id="rename" onclick="rename()">Rename</li>
+        <li id="rename" onclick="rename(event)">Rename</li>
         <li id="edit" onclick="edit()">Edit</li>
         <li id="email" onclick="email()">Email</li>
         <li id="delete" onclick="delete_file()" style="border-bottom: 1px solid darkgray">Delete</li>
@@ -75,12 +75,29 @@
     <textarea style="background-color: lightgray; width: 100%; height:100%" id="preview_content"
               onclick="quit_preview()" placeholder="章节预览："></textarea>
 </div>
+<div id="rename_div" class="popup-window" style="display:none;position: absolute">
+    <div class="popup-window">
+        <h3 style="color: black">Rename</h3>
+    </div>
+    <div class="popup-window">
+        <input id="curName" value=""/>
+    </div>
+    <div class="popup-window">
+        <input id="newName" value=""/>
+    </div>
+    <div class="popup-window">
+        <button onclick="confirm_rename()">Confirm</button>
+        <button onclick="cancel_rename()">Cancel</button>
+    </div>
+</div>
 <script>
     $("#main").load("/ebk_listfiles_main");
 
     let item = null;
+    let itemName = null;
     let from = null;
     let menu_x = null;
+    let curView = "main";
     // const actions = {
     //     "preview": (event, id) => preview(event, id),
     //     "rename": (event, id) => rename(id),
@@ -104,13 +121,15 @@
     }
 
     function onItemMenu(event, parent) {
-        item = parent + event.target.innerText
+        itemName = event.target.innerText;
+        item = parent + itemName;
         console.log("open menu on: " + item);
         event.preventDefault();
         let menu = document.getElementById("contextMenu")
-        if (menu.style.display === "block")
-            hideItemMenu();
-        else {
+        if (curView === "menu") {
+            hideMenu();
+        } else if (curView === "main" || curView === "submenu") {
+            hideSubmenu();
             menu.style.display = 'block';
             menu.style.left = event.pageX + "px";
             menu.style.top = event.pageY + "px";
@@ -124,9 +143,9 @@
 
     function onSubMenu(y) {
         let menu = document.getElementById("subMenu")
-        if (menu.style.display === "block") {
-            hideItemMenu();
-        } else {
+        if (curView === "submenu") {
+            hideSubmenu();
+        } else if (curView === "menu") {
             menu.style.display = 'block';
             menu.style.left = (menu_x + 150) + "px";
             menu.style.top = y + "px";
@@ -137,8 +156,14 @@
         }
     }
 
-    function hideItemMenu() {
+    function hideMenu() {
+        curView = "main";
         document.getElementById("contextMenu").style.display = "none"
+        document.getElementById("subMenu").style.display = "none"
+    }
+
+    function hideSubmenu() {
+        curView = "menu";
         document.getElementById("subMenu").style.display = "none"
     }
 
@@ -170,7 +195,7 @@
     }
 
     function preview(event) {
-        hideItemMenu();
+        hideMenu();
         let file_path = get_ext_path(item, "txt");
         if (file_path === "") {
             console.log("preview " + file_path + ": txt format not available");
@@ -198,7 +223,7 @@
     }
 
     function ebk_to_format(to) {
-        hideItemMenu()
+        hideMenu()
         console.log("convert " + item + ': from ' + from + " to " + to);
         $.post("/ebk_to_format", {'file_path': item, 'from': from, 'to': to}, function (response) {
             if (response.output && response.output.length > 0) {
@@ -212,17 +237,49 @@
     }
 
     function edit() {
-        hideItemMenu();
+        hideMenu();
         console.log("edit " + item);
     }
 
-    function rename() {
-        hideItemMenu();
+    function rename(event) {
+        hideMenu();
         console.log("rename " + item);
+        curView = "rename";
+        let view = document.getElementById("rename_div");
+        view.style.display = 'block';
+        view.style.left = event.pageX + "px";
+        view.style.top = event.pageY + "px";
+        let curName = document.getElementById("curName");
+        curName.value = itemName;
+        curName.readOnly = true;
+        let newName = document.getElementById("newName");
+        newName.value = "";
+        newName.focus();
+    }
+
+    function confirm_rename() {
+        cancel_rename()
+        let newName = document.getElementById('newName').value;
+        console.log("rename " + itemName + " to " + newName);
+        $.post("/ebk_rename", {'path': item, 'cur_name': itemName, 'new_name': newName}, function (response) {
+            if (response.code === 200) {
+                console.log("rename " + item);
+                let old_item = document.getElementById(item);
+                old_item.value = newName;
+                old_item.id = response.path;
+            } else {
+                alert(response.message);
+            }
+        });
+    }
+
+    function cancel_rename() {
+        curView = "main";
+        document.getElementById("rename_div").style.display = "none";
     }
 
     function email() {
-        hideItemMenu();
+        hideMenu();
         const epub_path = get_ext_path(item, "epub");
         if (epub_path === "") {
             window.alert("Email " + item + ": epub format is not available");
@@ -235,6 +292,7 @@
     }
 
     function delete_file() {
+        hideMenu();
         console.log("delete " + item);
     }
 

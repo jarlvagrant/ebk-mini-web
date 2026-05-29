@@ -28,7 +28,7 @@
         </td>
         <td class="file_name">
             {% set first_ext = file_info.values()|first %}
-            <p style="margin-left: 20px; color: black; white-space: nowrap; overflow-x: clip" onclick="onItemMenu(event, '{{ parent }}')">
+            <p id="{{ parent }}{{ file_name }}" style="margin-left: 20px; color: black; white-space: nowrap; overflow-x: clip" onclick="onItemMenu(event, '{{ parent }}')">
                 {% for i in range(indent) %}<span class="pad_left"></span>{% endfor %}{{ file_name }}</p>
         </td>
         {% for file_type in allowed_types %}

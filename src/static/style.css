@@ -337,3 +337,11 @@ tr.folders_even {background-color: #91a3af;}
   width: 750px;
   height: 350px;
 }
+
+.popup-window {
+  font-size: 1.25em;
+  padding: 5px 40px 5px 40px;
+  text-align: center;
+  background-color: #377ba8;
+  color: black;
+}

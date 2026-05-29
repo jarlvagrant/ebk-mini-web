@@ -38,7 +38,7 @@ def get_meta_data(intro, data, filename=""):
 	content = intro if intro else data
 	title = filename
 	author, tags = "", ""
-	seg = re.search(r"(?s)[.]?([^\n《》「」『』【】/]*).?\n?作者[：:]([^\n》」』】)]*)", content)
+	seg = re.search(r"(?s)(.*).?\n?作者[：:](.*)", content)
 	if seg:
 		title = title if title else seg.group(1)
 		author = seg.group(2)
