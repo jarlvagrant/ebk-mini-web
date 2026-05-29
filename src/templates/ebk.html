@@ -57,19 +57,46 @@
 <div id="listfiles"></div>
 <div id="contextMenu" class="context-menu" style="display:none">
     <ul>
-        <li id="context_menu_extract">Extract</li>
-        <li id="context_menu_extract_email">Extract & Email</li>
-        <li id="context_menu_convert">Convert</li>
-        <li id="context_menu_convert_email">Convert & Email</li>
-        <li id="context_menu_email">Email</li>
-        <li id="context_menu_remove">Remove</li>
+        <li id="context_menu_extract" onclick="extract(item)">Extract</li>
+        <li id="context_menu_extract_email" onclick="extract(item, to_email=true)">Extract & Email</li>
+        <li id="context_menu_convert" onclick="convert(item)">Convert</li>
+        <li id="context_menu_convert_email" onclick="convert(item, to_email=true)">Convert & Email</li>
+        <li id="context_menu_email" onclick="email_epub()">Email</li>
+        <li id="context_menu_remove" onclick="remove_item(item, type)">Remove</li>
     </ul>
 </div>
 <script>
+    let item = null;
+    let type = null;
     document.onclick = hideItemMenu
 
     $("#uploads").load("/ebk_uploads");
     $("#urls").load("/ebk_urls");
+
+    function onItemMenu(event) {
+        console.log("onItemMenu " + document.getElementById("contextMenu").style.display, event);
+        event.preventDefault();
+        let menu = document.getElementById("contextMenu")
+        if (menu.style.display === "block")
+            document.getElementById("contextMenu").style.display = "none";
+        else {
+            menu.style.display = 'block';
+            menu.style.left = event.pageX + "px";
+            menu.style.top = event.pageY + "px";
+            set_menu_options(event.target.name !== "collapsible_local")
+            item = event.target;
+            type = item.name;
+        }
+        console.log("onItemMenu " + document.getElementById("contextMenu").style.display);
+    }
+
+    function set_menu_options(extract_or_convert) {
+        const extract = extract_or_convert === "extract";
+        document.getElementById("context_menu_extract").style.display = extract? "block" : "none";
+        document.getElementById("context_menu_extract_email").style.display = extract? "block" : "none";
+        document.getElementById("context_menu_convert").style.display = extract? "none" : "block";
+        document.getElementById("context_menu_convert_email").style.display = extract? "none": "block";
+    }
 
     // post book args e.g. content tag id=id tag=tag
     function sync_item_args(event) {
@@ -132,6 +159,7 @@
     }
 
     function extract(input, to_email=false) {
+        hideItemMenu();
         let part = input.innerText;
         if (document.getElementById('txt' + part).href) {
             let answer = confirm(part + " txt exist, overwrite?")
@@ -203,6 +231,7 @@
 
     // need to check if input is the same on collapsible_content
     function convert(input, to_email=false) {
+        hideItemMenu();
         let part = input.innerText;
         if (document.getElementById("epub" + part).href) {
             let answer = confirm(part + ": Epub file exists, overwrite?");
@@ -275,6 +304,7 @@
     }
 
     function email_epub(input) {
+        hideItemMenu();
         let path = decodeURI(document.getElementById("epub" + input.innerText).href);
         path = path.substring(path.search("file_path=") + 10);
         if (!path || path.length === 0) {
@@ -307,6 +337,7 @@
     }
 
     function remove_item(input, type) {
+        hideItemMenu();
         console.log(input);
         $.post("ebk_remove", {'key': input.innerText}, function (response) {
             if (type === "collapsible_local") {
@@ -326,12 +357,12 @@
         });
     }
 
-    function hideMenu() {
+    function hideItemMenu() {
         if (! event.target.classList.contains('collapsible') || event.pageX >= 80)
             document.getElementById("contextMenu").style.display = "none"
     }
 
-    function onItemMenu(event) {
+    function onItemMenu_old(event) {
         event.preventDefault();
         let menu = document.getElementById("contextMenu")
         if (menu.style.display === "block")
