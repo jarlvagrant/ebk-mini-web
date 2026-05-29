@@ -9,8 +9,9 @@
             <input type="checkbox" name="file_checkbox">
         </td>
         <td class="folder_name" colspan="6">
-            <p data-label="{{ folder_path }}" style="color: white;">{% for i in range(indent) %}<span class="pad_left"></span>{% endfor %}
-                <span class="collapsible_folder" onclick="toggle_collapse_folder(this)"></span>{{ folder }}</p>
+            <p data-label="{{ folder_path }}" style="margin-left: 6px; color: white;">
+                <span class="collapsible_folder" onclick="toggle_collapse_folder(this)"
+                      style="padding-left: {{ indent }}"></span>{{ folder }}</p>
         </td>
     </tr>
 </table>
@@ -28,8 +29,10 @@
         </td>
         <td class="file_name">
             {% set first_ext = file_info.values()|first %}
-            <p id="{{ parent }}{{ file_name }}" style="margin-left: 20px; color: black; white-space: nowrap; overflow-x: clip" onclick="onItemMenu(event, '{{ parent }}')">
-                {% for i in range(indent) %}<span class="pad_left"></span>{% endfor %}{{ file_name }}</p>
+            <p id="{{ parent }}{{ file_name }}"
+               onclick="onItemMenu(event, '{{ parent }}')"
+               style="padding-left: {{ indent }}; margin-left: 20px; color: black; white-space: nowrap; overflow-x: clip">
+                {{ file_name }}</p>
         </td>
         {% for file_type in allowed_types %}
             {% set ext_info = file_info[file_type] %}

@@ -10,7 +10,7 @@ from werkzeug.serving import WSGIRequestHandler
 from Commons import UpdateDir, UpdateConfig, ListSubfolders
 from EbookSender import EBook, EbookUploads, EbookConverterTask, EbookCover, EbookCoverUrl, EbookEmail, \
 	EbookUrls, EbookExtractorTask, EbookSyncInput, EbookDownload, EbookRemoveItem, EbookSyncOutput, \
-	EbookPreview, EbookToFormat, EbookListfilesMain, EbookListfiles
+	EbookPreview, EbookToFormat, EbookListfilesMain, EbookListfiles, EbookRenameItem
 from Utils import log_path, log_file
 
 
@@ -67,6 +67,7 @@ def main():
 	app.add_url_rule("/ebk_remove", methods=['POST'], view_func=EbookRemoveItem.as_view("ebk_remove"))
 	app.add_url_rule("/ebk_preview", methods=['POST'], view_func=EbookPreview.as_view("ebk_preview"))
 	app.add_url_rule("/ebk_to_format", methods=['POST'], view_func=EbookToFormat.as_view("ebk_to_format"))
+	app.add_url_rule("/ebk_rename", methods=['POST'], view_func=EbookRenameItem.as_view("ebk_rename"))
 	app.run(debug=True, host='0.0.0.0', port=8008, request_handler=MyRequestHandler)
 
 

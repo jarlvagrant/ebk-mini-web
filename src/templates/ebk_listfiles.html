@@ -198,7 +198,7 @@
         hideMenu();
         let file_path = get_ext_path(item, "txt");
         if (file_path === "") {
-            console.log("preview " + file_path + ": txt format not available");
+            alert("preview " + file_path + ": txt format not available");
             return;
         }
         console.log("preview " + file_path);
@@ -261,11 +261,11 @@
         cancel_rename()
         let newName = document.getElementById('newName').value;
         console.log("rename " + itemName + " to " + newName);
-        $.post("/ebk_rename", {'path': item, 'cur_name': itemName, 'new_name': newName}, function (response) {
+        $.post("/ebk_rename", {'path': item, 'curName': itemName, 'newName': newName}, function (response) {
             if (response.code === 200) {
-                console.log("rename " + item);
+                console.log("renamed " + itemName + " to " + newName);
                 let old_item = document.getElementById(item);
-                old_item.value = newName;
+                old_item.innerText = newName;
                 old_item.id = response.path;
             } else {
                 alert(response.message);

@@ -104,11 +104,11 @@ def getIndent(path, parent):
 	indent = 0
 	current = path
 	while current != parent:
-		indent += 1
+		indent += 20
 		current = os.path.dirname(current)
 		if current == os.sep and current != parent:
 			return 0
-	return indent
+	return f"{indent}px"
 
 
 def sort_files_by(key, files, reverse=False):
@@ -442,4 +442,5 @@ class EbookRenameItem(View):
 				if not os.path.isfile(new_path + "." + t):
 					code = 401
 					msg += f"File {new_path}.{t} not found."
+		logger.debug(f"Rename {cur_name} to {new_name}: {code} {msg}")
 		return jsonify(code=code, message=msg, path=new_path)
