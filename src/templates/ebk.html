@@ -90,8 +90,7 @@
         console.log("onItemMenu " + document.getElementById("contextMenu").style.display);
     }
 
-    function set_menu_options(extract_or_convert) {
-        const extract = extract_or_convert === "extract";
+    function set_menu_options(extract) {
         document.getElementById("context_menu_extract").style.display = extract? "block" : "none";
         document.getElementById("context_menu_extract_email").style.display = extract? "block" : "none";
         document.getElementById("context_menu_convert").style.display = extract? "none" : "block";

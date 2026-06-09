@@ -90,6 +90,38 @@
         <button onclick="cancel_rename()">Cancel</button>
     </div>
 </div>
+<div id="delete_div" class="popup-window" style="display:none;position: absolute">
+    <div class="popup-window">
+        <h3 style="color: black">Delete {{ itemName }}</h3>
+    </div>
+    <div class="popup-window">
+        <form>
+            <ul>
+                <li>
+                    <label for="delete_txt">Delete txt</label>
+                    <input type="checkbox" name="delete_txt" value=false/>
+                </li>
+                <li>
+                    <label for="delete_pdf">Delete PDF</label>
+                    <input type="checkbox" name="delete_pdf" value=false/>
+                </li>
+                <li>
+                    <label for="delete_epub">Delete ePub</label>
+                    <input type="checkbox" name="delete_epub" value=false/>
+                </li>
+                <li>
+                    <label for="delete_mobi">Delete Mobi</label>
+                    <input type="checkbox" name="delete_mobi" value=false/>
+                </li>
+                <li>
+                    <label for="delete_azw3">Delete azw3</label>
+                    <input type="checkbox" name="delete_azw3" value=false/>
+                </li>
+            </ul>
+        </form>
+
+    </div>
+</div>
 <script>
     $("#main").load("/ebk_listfiles_main");
 
