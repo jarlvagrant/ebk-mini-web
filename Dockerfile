@@ -39,8 +39,8 @@ ENV QTWEBENGINE_CHROMIUM_FLAGS="--no-sandbox"
 RUN ebook-convert --version
 
 # Set the working directory in the container
-WORKDIR /app/src
-COPY . .
+COPY . /app
+WORKDIR /app/
 
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
