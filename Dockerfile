@@ -39,8 +39,8 @@ ENV QTWEBENGINE_CHROMIUM_FLAGS="--no-sandbox"
 RUN ebook-convert --version
 
 # Set the working directory in the container
-COPY . /app
-WORKDIR /app/src
+WORKDIR /app
+COPY . .
 
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
@@ -50,5 +50,5 @@ EXPOSE 8008
 
 # Run the application
 #CMD ["sh", "-c", "/app/wrapper-run.sh"]
-
+WORKDIR /app/src
 CMD ["python3", "WebTools.py"]
