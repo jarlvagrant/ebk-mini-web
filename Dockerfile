@@ -38,15 +38,16 @@ ENV QTWEBENGINE_CHROMIUM_FLAGS="--no-sandbox"
 # 4. Verify (Using the absolute path just to be safe for the first run)
 RUN ebook-convert --version
 
+# Set the working directory in the container
+COPY . /app
+WORKDIR /app/src
+
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
 
 # Make port 5000 available to the world outside this container
 EXPOSE 8008
 
-# Set the working directory in the container
-COPY . /app
-WORKDIR /app/src
 # Run the application
 #CMD ["sh", "-c", "/app/wrapper-run.sh"]
 
