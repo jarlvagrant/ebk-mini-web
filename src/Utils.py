@@ -4,6 +4,8 @@ import logging
 import os
 import shutil
 import smtplib
+import sys
+import threading
 from email.message import EmailMessage
 from pathlib import Path
 
@@ -21,6 +23,37 @@ book_csv_columns = ['title', 'author', 'path', 'format', 'size', 'updated', 'cre
 
 
 logger = logging.getLogger(__name__)
+
+
+class ThreadWithTrace(threading.Thread):
+	def __init__(self, target=None, name="", daemon=True, *args, **keywords):
+		threading.Thread.__init__(self, target=target, name=name, daemon=daemon, *args, **keywords)
+		self.killed = False
+
+	def start(self):
+		self.__run_backup = self.run
+		self.run = self.__run
+		threading.Thread.start(self)
+
+	def __run(self):
+		sys.settrace(self.globaltrace)
+		self.__run_backup()
+		self.run = self.__run_backup
+
+	def globaltrace(self, frame, event, arg):
+		if event == 'call':
+			return self.localtrace
+		else:
+			return None
+
+	def localtrace(self, frame, event, arg):
+		if self.killed:
+			if event == 'line':
+				raise SystemExit()
+		return self.localtrace
+
+	def kill(self):
+		self.killed = True
 
 
 def getDate():

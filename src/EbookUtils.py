@@ -4,7 +4,6 @@ import os
 import random
 import re
 import sys
-from threading import Thread
 from time import sleep
 from urllib.parse import unquote, urlsplit, urlparse
 
@@ -296,8 +295,7 @@ class LocalBookStatus:
 class UrlBookStatus(LocalBookStatus):
 	def add(self, key):
 		if not self.status.get(key):
-			self.status[key] = {"intro": "", "is_collapsed": "", "content": "", "chapter": "", "thread": Thread(),
-			                    "message": "",
+			self.status[key] = {"intro": "", "is_collapsed": "", "content": "", "chapter": "", "message": "",
 			                    "image": "", "txt": "", "epub": ""}
 
 

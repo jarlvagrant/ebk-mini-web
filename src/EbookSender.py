@@ -4,10 +4,10 @@ import os
 import re
 import subprocess
 import threading
+import time
 
 import pinyin
 from pathlib import Path
-from threading import Thread
 from urllib.parse import urlsplit
 
 from flask import typing as ft, render_template, Response, request, jsonify, send_from_directory
@@ -16,6 +16,7 @@ from flask.views import View
 from EbookUtils import clean_txt, EbookWebExtractor, EpubConverter, getKindleGenBin, LocalBookStatus, UrlBookStatus, \
 	extractHtmlImage, getCalibreCli
 from Utils import ConfigIO, SendEmail, getInitialFolder, getSubfolders, log_path, read_binary_file, SymlinkIO, ImageIO
+from src.Utils import ThreadWithTrace
 
 logger = logging.getLogger(__name__)
 
@@ -51,9 +52,12 @@ class EbookSyncOutput(View):
 		chapter = url_book_dict.get_value_if_key(key, 'chapter')
 		e_pub = url_book_dict.get_value_if_key(key, 'epub')
 		txt = url_book_dict.get_value_if_key(key, 'txt')
-		t = url_book_dict.get_value_if_key(key, 'thread')
+		stop = True
+		for thread in threading.enumerate():
+			if thread.name == key and thread.is_alive():
+				stop = False
+				break
 		message = url_book_dict.get_value_if_key(key, 'message')
-		stop = False if t and t.is_alive() else True
 		return jsonify(code=200, content=content, chapter=chapter, txt=txt, epub=e_pub, stop=stop, message=message)
 
 
@@ -213,7 +217,7 @@ class EbookUrls(View):
 		return render_template("ebk_urls.html", book_urls=url_book_dict.status)
 
 
-busy_hosts = {str: threading.Event()}
+busy_hosts = {str: threading.Lock()}
 
 
 class EbookExtractorTask(View):
@@ -221,6 +225,9 @@ class EbookExtractorTask(View):
 		url = request.form.get("url")
 		if not url:
 			return jsonify(code=500, message="No url specified")
+		for thread in threading.enumerate():
+			if thread.name == url and thread.is_alive():
+				return jsonify(code=500, message=f"Ongoing task extracting {url} ")
 
 		path = ConfigIO.get("ebook_dir")
 		if not os.path.isdir(path):
@@ -241,8 +248,7 @@ class EbookExtractorTask(View):
 		        "content_tag": content_tag}
 
 		logger.debug(f"Request to extract from {url}: {args.__str__()}, send_epub_to_email: {to_email}")
-		t = Thread(target=extractor_worker, args=(url, args, to_email))
-		url_book_dict.set_value(url, "thread", t)
+		t = ThreadWithTrace(target=extractor_worker, name=url, daemon=True, args=(url, args, to_email))
 		t.start()
 		return jsonify(code=200, message="Extracting {url}")
 
@@ -250,19 +256,23 @@ class EbookExtractorTask(View):
 def extractor_worker(url, args, to_email):
 	url_netloc = urlsplit(url).netloc
 	logger.debug(f"Busy hosts: {busy_hosts.keys().__str__()}")
-	if busy_hosts.get(url_netloc):
-		logger.debug(f"Waiting for {url_netloc} to be free...")
-		busy_hosts.get(url_netloc).wait()
-	else:
-		busy_hosts[url_netloc] = threading.Event()
-	busy_hosts[url_netloc].clear()
+	lock = busy_hosts.get(url_netloc)
+	if not lock:
+		lock = threading.Lock()
+		busy_hosts[url_netloc] = lock
+	logger.debug(f"Is host {url_netloc} busy? {lock and lock.locked()}")
+	while lock and lock.locked():
+		time.sleep(3)
+	logger.debug(f"Host {url_netloc} is free")
+	# block other thread
+	lock.acquire_lock()
 	extractor = EbookWebExtractor(url, args, url_book_dict.status.get(url))
 	text = extractor.extract()
 	content = text[0:2000] if len(text) > 2000 else text
 	url_book_dict.set_value(url, "content", content)
 	url_book_dict.set_value_if_key(url, "message", extractor.error)
 	logger.debug(f"Host {url_netloc} freed")
-	busy_hosts[url_netloc].set()
+	lock.release()
 
 	# converter task doesn't need to be waiting for
 	converter = EpubConverter(text, img_filename=url_book_dict.get_value(url, "image"))
@@ -285,6 +295,20 @@ def extractor_worker(url, args, to_email):
 		sender = SendEmail(output)
 		sender.send()
 		url_book_dict.append_value_if_key(url, "message", sender.message)
+
+
+class EbookExtractorTaskStopper(View):
+	def dispatch_request(self) -> ft.ResponseReturnValue:
+		url = request.form.get("url")
+		for thread in threading.enumerate():
+			if thread.name == url and thread.is_alive():
+				logger.debug(f"Request to kill {url}")
+				try:
+					thread.kill()
+					busy_hosts[urlsplit(url).netloc].release()
+				except Exception as e:
+					logger.warning(f"Can't kill {url}: {e}")
+		return jsonify(code=200)
 
 
 class EbookEmail(View):
@@ -404,6 +428,9 @@ class EbookRemoveItem(View):
 		key = request.form.get('key')
 		to_all = request.form.get('all')
 		if to_all:
+			for thread in threading.enumerate():
+				if thread.name in url_book_dict.status.keys():
+					return jsonify(code=501, message="Stop active task and retry.")
 			for k, v in url_book_dict.status.items():
 				remove_cached_files(v)
 			for k, v in local_book_dict.status.items():
@@ -411,6 +438,10 @@ class EbookRemoveItem(View):
 			url_book_dict.status.clear()
 			local_book_dict.status.clear()
 		else:
+			for thread in threading.enumerate():
+				if thread.name == key and thread.is_alive():
+					logger.debug("thread is still running")
+					return jsonify(code=501, message=f"Thread {thread.name} is still running!")
 			item = url_book_dict.remove(key)
 			remove_cached_files(item)
 			item = local_book_dict.remove(key)

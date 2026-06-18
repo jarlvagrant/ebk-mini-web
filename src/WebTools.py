@@ -10,7 +10,7 @@ from werkzeug.serving import WSGIRequestHandler
 from Commons import UpdateDir, UpdateConfig, ListSubfolders
 from EbookSender import EBook, EbookUploads, EbookConverterTask, EbookCover, EbookCoverUrl, EbookEmail, \
 	EbookUrls, EbookExtractorTask, EbookSyncInput, EbookDownload, EbookRemoveItem, EbookSyncOutput, \
-	EbookPreview, EbookToFormat, EbookListfilesMain, EbookListfiles, EbookRenameItem
+	EbookPreview, EbookToFormat, EbookListfilesMain, EbookListfiles, EbookRenameItem, EbookExtractorTaskStopper
 from Utils import log_path, log_file
 
 
@@ -62,6 +62,7 @@ def main():
 	app.add_url_rule("/ebk_cover_url", methods=['POST'], view_func=EbookCoverUrl.as_view("ebk_cover_url"))
 	app.add_url_rule("/ebk_convert_task", methods=['POST'], view_func=EbookConverterTask.as_view("ebk_convert_task"))
 	app.add_url_rule("/ebk_extractor_task", methods=['POST'], view_func=EbookExtractorTask.as_view("ebk_extractor_task"))
+	app.add_url_rule("/ebk_extractor_task_stopper", methods=['POST'], view_func=EbookExtractorTaskStopper.as_view("ebk_extractor_task_stopper"))
 	app.add_url_rule("/ebk_download", methods=['GET'], view_func=EbookDownload.as_view("ebk_download"))
 	app.add_url_rule("/ebk_email", methods=['POST'], view_func=EbookEmail.as_view("ebk_email"))
 	app.add_url_rule("/ebk_remove", methods=['POST'], view_func=EbookRemoveItem.as_view("ebk_remove"))

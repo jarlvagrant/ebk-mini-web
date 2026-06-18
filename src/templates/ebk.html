@@ -47,6 +47,7 @@
 </table>
 <div align="right" style="margin-top: 1em">
     <button type="button" id="extract_all" style="margin-right: 1em" onclick="extract_all()">Extract all</button>
+    <button type="button" id="stop_extract_all" style="margin-right: 1em" onclick="stop_extract_all()">Stop Extract all</button>
     <button type="button" id="convert_all" style="margin-right: 1em" onclick="convert_all()">Convert all</button>
     <button type="button" id="send_all" style="margin-right: 1em" onclick="email_epub_all()">Email ePubs</button>
     <button type="button" id="remove_all" style="margin-right: 1em" onclick="remove_all()">Clear</button>
@@ -62,12 +63,12 @@
         <li id="context_menu_convert" onclick="convert(item)">Convert</li>
         <li id="context_menu_convert_email" onclick="convert(item, to_email=true)">Convert & Email</li>
         <li id="context_menu_email" onclick="email_epub()">Email</li>
-        <li id="context_menu_remove" onclick="remove_item(item, type)">Remove</li>
+        <li id="context_menu_extract_stopper" onclick="extract_stopper(item)">Stop Extracting</li>
+        <li id="context_menu_remove" onclick="remove_item(item)">Remove</li>
     </ul>
 </div>
 <script>
     let item = null;
-    let type = null;
     document.onclick = hideItemMenu
 
     $("#uploads").load("/ebk_uploads");
@@ -85,7 +86,6 @@
             menu.style.top = event.pageY + "px";
             set_menu_options(event.target.name !== "collapsible_local")
             item = event.target;
-            type = item.name;
         }
         console.log("onItemMenu " + document.getElementById("contextMenu").style.display);
     }
@@ -93,6 +93,7 @@
     function set_menu_options(extract) {
         document.getElementById("context_menu_extract").style.display = extract? "block" : "none";
         document.getElementById("context_menu_extract_email").style.display = extract? "block" : "none";
+        document.getElementById("context_menu_extract_stopper").style.display = extract? "block" : "none";
         document.getElementById("context_menu_convert").style.display = extract? "none" : "block";
         document.getElementById("context_menu_convert_email").style.display = extract? "none": "block";
     }
@@ -228,6 +229,18 @@
         }, 2000);
     }
 
+    function extract_stopper(input) {
+        let part = input.innerText;
+        $.post("/ebk_extractor_task_stopper", {"url": part});
+    }
+
+    function stop_extract_all() {
+        let items = document.getElementsByName("collapsible_web");
+        for (let i = 0; i < items.length; i++) {
+            extract_stopper(items[i]);
+        }
+    }
+
     // need to check if input is the same on collapsible_content
     function convert(input, to_email=false) {
         hideItemMenu();
@@ -335,14 +348,20 @@
         })
     }
 
-    function remove_item(input, type) {
+    function remove_item(input) {
         hideItemMenu();
-        console.log(input);
+        let type = item.name
+        console.log("input " + input);
         $.post("ebk_remove", {'key': input.innerText}, function (response) {
-            if (type === "collapsible_local") {
-                $("#uploads").load("/ebk_uploads");
-            } else if (type === "collapsible_web") {
-                $("#urls").load("/ebk_urls");
+            console.log(response);
+            if (response.code === 200) {
+                if (type === "collapsible_local") {
+                    $("#uploads").load("/ebk_uploads");
+                } else if (type === "collapsible_web") {
+                    $("#urls").load("/ebk_urls");
+                }
+            } else {
+                alert(response.message);
             }
         })
     }
@@ -351,55 +370,18 @@
         let answer = confirm("Confirm to remove everything in the list!");
         if (answer === false) return;
         $.post("ebk_remove", {'all': true}, function (response) {
-            $("#uploads").load("/ebk_uploads");
-            $("#urls").load("/ebk_urls");
+            if (response.code === 200) {
+                $("#uploads").load("/ebk_uploads");
+                $("#urls").load("/ebk_urls");
+            } else {
+                alert(response.message);
+            }
         });
     }
 
     function hideItemMenu() {
         if (! event.target.classList.contains('collapsible') || event.pageX >= 80)
             document.getElementById("contextMenu").style.display = "none"
-    }
-
-    function onItemMenu_old(event) {
-        event.preventDefault();
-        let menu = document.getElementById("contextMenu")
-        if (menu.style.display === "block")
-            document.getElementById("contextMenu").style.display = "none"
-        else {
-            menu.style.display = 'block';
-            menu.style.left = event.pageX + "px";
-            menu.style.top = event.pageY + "px";
-            if (event.target.name === "collapsible_local") {
-                document.getElementById("context_menu_extract").style.display = "none";
-                document.getElementById("context_menu_extract_email").style.display = "none";
-                document.getElementById("context_menu_convert").style.display = "block";
-                document.getElementById("context_menu_convert_email").style.display = "block";
-            } else {
-                document.getElementById("context_menu_extract").style.display = "block";
-                document.getElementById("context_menu_extract_email").style.display = "block";
-                document.getElementById("context_menu_convert").style.display = "none";
-                document.getElementById("context_menu_convert_email").style.display = "none";
-            }
-            document.getElementById("context_menu_extract").onclick = function handle_extract() {
-                extract(event.target, false);
-            };
-            document.getElementById("context_menu_extract_email").onclick = function handle_extract() {
-                extract(event.target, true);
-            };
-            document.getElementById("context_menu_convert").onclick = function handle_convert() {
-                convert(event.target, false);
-            };
-            document.getElementById("context_menu_convert_email").onclick = function handle_convert() {
-                convert(event.target, true);
-            };
-            document.getElementById("context_menu_email").onclick = function handle_email() {
-                email_epub(event.target);
-            };
-            document.getElementById("context_menu_remove").onclick = function handle_remove() {
-                remove_item(event.target, event.target.name);
-            };
-        }
     }
 
     function toggle_collapse(event) {
