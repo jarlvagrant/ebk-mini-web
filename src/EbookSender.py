@@ -16,8 +16,7 @@ from flask.views import View
 
 from EbookUtils import clean_txt, EbookWebExtractor, EpubConverter, getKindleGenBin, LocalBookStatus, UrlBookStatus, \
 	extractHtmlImage, getCalibreCli
-from Utils import ConfigIO, SendEmail, getInitialFolder, getSubfolders, log_path, read_binary_file, SymlinkIO, ImageIO
-from src.Utils import ThreadWithTrace
+from Utils import ConfigIO, SendEmail, getInitialFolder, getSubfolders, log_path, read_binary_file, SymlinkIO, ImageIO, ThreadWithTrace
 
 logger = logging.getLogger(__name__)
 
