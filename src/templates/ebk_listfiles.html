@@ -17,22 +17,22 @@
         <label for="revert">Revert</label>
     </td>
     <td class="options">
-        <button>Convert Selected</button>
+        <button onclick="convert_all()">Convert Selected</button>
     </td>
     <td class="options">
-        <button>Email Selected</button>
+        <button onclick="email_epub_all()">Email Selected</button>
     </td>
     <td class="options">
-        <button>Delete Selected</button>
+        <button onclick="delete_all()">Delete Selected</button>
     </td>
     <td class="options">
         <label for="sort_by">Sort by</label>
         <select name="sort_by" id="sort_by" onchange="sort_by_selected(this.value)">
-            <optgroup label="------------">
-            <option value="name_0">Filename a &rarr; z</option>
+            <optgroup label="Sort By"></optgroup>
+            <option value="name_0" selected>Filename a &rarr; z</option>
             <option value="name_1">Filename z &rarr; a</option>
-            <option value="folder_0">Folder a &rarr; z</option>
-            <option value="folder_1">Folder z &rarr; a</option>
+            <option value="size_0">Small &rarr; Large</option>
+            <option value="size_1">Large &rarr; Small</option>
             <option value="date_0">Date: Old &rarr; New</option>
             <option value="date_1">Date: New &rarr; Old</option>
         </select>
@@ -40,96 +40,108 @@
     <td class="options">
         <label for="filter_by">Filter by</label>
         <select name="filter_by" id="filter_by">
-            <option value="tags">Tags</option>
+            <optgroup label="Filter By"></optgroup>
+            <option value="tags" selected>Tags</option>
             <option value="author">Author</option>
             <option value="rating">Rating</option>
         </select>
     </td>
 </table>
 {% endblock %}
-<div id="main"></div>
+<div id="main">Failed to load book table ...</div>
 <div id="contextMenu" class="context-menu" style="display:none">
     <ul>
         <li id="preview" onclick="preview(event)">Preview</li>
         <li id="rename" onclick="rename(event)">Rename</li>
         <li id="edit" onclick="edit()">Edit</li>
         <li id="email" onclick="email()">Email</li>
-        <li id="delete" onclick="delete_file()" style="border-bottom: 1px solid darkgray">Delete</li>
-        <li id="from_txt" onclick="handle_convert(event)">Convert txt -> </li>
+        <li id="delete" onclick="delete_file(event)" style="border-bottom: 1px solid darkgray">Delete</li>
+        <li id="from_txt" onclick="handle_convert(event)">Convert TxT -> </li>
         <li id="from_epub" onclick="handle_convert(event)">Convert ePub -> </li>
         <li id="from_pdf" onclick="handle_convert(event)">Convert PDF -> </li>
         <li id="from_mobi" onclick="handle_convert(event)">Convert Mobi -> </li>
-        <li id="from_azw3" onclick="handle_convert(event)">Convert azw3 -> </li>
+        <li id="from_azw3" onclick="handle_convert(event)">Convert AZW3 -> </li>
     </ul>
 </div>
 <div id="subMenu" class="context-menu" style="display:none">
     <ul>
-        <li id="to_txt" onclick="ebk_to_format('txt')"> txt </li>
+        <li id="to_txt" onclick="ebk_to_format('txt')"> TxT </li>
         <li id="to_epub" onclick="ebk_to_format('epub')"> ePub </li>
         <li id="to_pdf" onclick="ebk_to_format('pdf')"> PDF </li>
         <li id="to_mobi" onclick="ebk_to_format('mobi')"> Mobi </li>
-        <li id="to_azw3" onclick="ebk_to_format('azw3')"> azw3 </li>
+        <li id="to_azw3" onclick="ebk_to_format('azw3')"> AZW3 </li>
     </ul>
 </div>
-<div id="preview_div" class="preview-div" style="display:none;position: absolute">
+<div id="preview_div" class="preview-div" style="display:none" onclick="hidePopups(['preview_div'])">
     <textarea style="background-color: lightgray; width: 100%; height:100%" id="preview_content"
               onclick="quit_preview()" placeholder="章节预览："></textarea>
 </div>
-<div id="rename_div" class="popup-window" style="display:none;position: absolute">
+<div id="rename_div" class="popup-window" style="display:none; position:absolute; width: 40%; height: 25%">
     <div class="popup-window">
-        <h3 style="color: black">Rename</h3>
+        <h3 id="rename_fileName" style="color: #98b2c3; margin: 20px 0 30px 0">Rename</h3>
     </div>
     <div class="popup-window">
-        <input id="curName" value=""/>
+        <label style="font-family: serif; color: #98b2c3; padding-right: 10px">From</label>
+        <input id="curName" value="" style="font-size: 1.25rem; width: 70%"/>
     </div>
     <div class="popup-window">
-        <input id="newName" value=""/>
+        <label style="font-family: serif; color: #98b2c3; padding-right: 40px">To</label>
+        <input id="newName" value="" style="font-size: 1.25rem; width: 70%"/>
     </div>
-    <div class="popup-window">
-        <button onclick="confirm_rename()">Confirm</button>
+    <div class="popup-window" style="margin-top: 20px">
+        <button style="margin-right: 50px" onclick="confirm_rename()">Confirm</button>
         <button onclick="cancel_rename()">Cancel</button>
     </div>
 </div>
-<div id="delete_div" class="popup-window" style="display:none;position: absolute">
+<div id="delete_div" class="popup-window" style="display:none; position:absolute; padding-left: 20px; width: 40%; height: 35%">
     <div class="popup-window">
-        <h3 style="color: black">Delete {{ itemName }}</h3>
+        <h3 style="color: #98b2c3; margin: 20px 0 10px 0">Delete</h3>
+        <div style="text-align: left; margin:0 0 10px 0">
+            <input type="checkbox" id="delete_format_all" value="false" onclick="delete_format_select_all(this)">
+            <label id="delete_fileName" style="font-family: serif; color: #0a9df4;"></label>
+        </div>
     </div>
     <div class="popup-window">
-        <form>
-            <ul>
+        <form style="margin: 0; padding: 0">
+            <ul style="list-style-type:none; text-align: left; margin: 0; padding: 0">
                 <li>
-                    <label for="delete_txt">Delete txt</label>
-                    <input type="checkbox" name="delete_txt" value=false/>
+                    <input type="checkbox" id="delete_txt" name="delete_format" value=false/>
+                    <label for="delete_txt">Delete TxT</label>
                 </li>
                 <li>
+                    <input type="checkbox" id="delete_pdf" name="delete_format" value=false/>
                     <label for="delete_pdf">Delete PDF</label>
-                    <input type="checkbox" name="delete_pdf" value=false/>
                 </li>
                 <li>
+                    <input type="checkbox" id="delete_epub" name="delete_format" value=false/>
                     <label for="delete_epub">Delete ePub</label>
-                    <input type="checkbox" name="delete_epub" value=false/>
                 </li>
                 <li>
+                    <input type="checkbox" id="delete_mobi" name="delete_format" value=false/>
                     <label for="delete_mobi">Delete Mobi</label>
-                    <input type="checkbox" name="delete_mobi" value=false/>
                 </li>
                 <li>
-                    <label for="delete_azw3">Delete azw3</label>
-                    <input type="checkbox" name="delete_azw3" value=false/>
+                    <input type="checkbox" id="delete_azw3" name="delete_format" value=false/>
+                    <label for="delete_azw3">Delete AZW3</label>
                 </li>
             </ul>
         </form>
-
+        <div class="popup-window" style="margin:10px 0 10px 0">
+            <button style="margin-right: 50px" onclick="confirm_delete()">Confirm</button>
+            <button onclick="cancel_delete()">Cancel</button>
+        </div>
     </div>
 </div>
 <script>
-    $("#main").load("/ebk_listfiles_main");
+    $(document).ready(function() {
+        let option = document.getElementById('sort_by').value.split('_')
+        $("#main").load("ebk_listfiles_main", {'sort_by': option[0], 'reverse': option[1]})
+    });
 
     let item = null;
-    let itemName = null;
+    let itemName = "";
     let from = null;
     let menu_x = null;
-    let curView = "main";
     // const actions = {
     //     "preview": (event, id) => preview(event, id),
     //     "rename": (event, id) => rename(id),
@@ -152,16 +164,35 @@
         }
     }
 
+    function list_popups() {
+        const popups = ['contextMenu', 'subMenu', 'preview_div', 'rename_div', 'delete_div'];
+        let ans = [];
+        popups.forEach((popup) => {
+            if (document.getElementById(popup).style.display !== 'none') {
+                ans.push(popup);
+            }
+        });
+        return ans;
+    }
+
+    function hidePopups(popups) {
+        popups.forEach((popup) => {
+            document.getElementById(popup).style.display = 'none';
+        });
+    }
+
     function onItemMenu(event, parent) {
         itemName = event.target.innerText;
+        console.log(itemName);
         item = parent + itemName;
-        console.log("open menu on: " + item);
         event.preventDefault();
         let menu = document.getElementById("contextMenu")
-        if (curView === "menu") {
-            hideMenu();
-        } else if (curView === "main" || curView === "submenu") {
-            hideSubmenu();
+        let popups = list_popups();
+        if (popups.length > 0) {
+            console.log("close menu on: " + item);
+            hidePopups(popups);
+        } else {
+            console.log("open menu on: " + item);
             menu.style.display = 'block';
             menu.style.left = event.pageX + "px";
             menu.style.top = event.pageY + "px";
@@ -174,29 +205,19 @@
     }
 
     function onSubMenu(y) {
-        let menu = document.getElementById("subMenu")
-        if (curView === "submenu") {
-            hideSubmenu();
-        } else if (curView === "menu") {
-            menu.style.display = 'block';
-            menu.style.left = (menu_x + 150) + "px";
-            menu.style.top = y + "px";
-            const nestedLists = menu.querySelectorAll('li');
+        let sub_menu = document.getElementById("subMenu")
+        let popups = list_popups();
+        if ('subMenu' in popups) {
+            hidePopups(['subMenu']);
+        } else {
+            sub_menu.style.display = 'block';
+            sub_menu.style.left = (menu_x + 150) + "px";
+            sub_menu.style.top = y + "px";
+            const nestedLists = sub_menu.querySelectorAll('li');
             nestedLists.forEach(li => {
                 disable_context_option(li.id, from === li.id.substring(3));
             });
         }
-    }
-
-    function hideMenu() {
-        curView = "main";
-        document.getElementById("contextMenu").style.display = "none"
-        document.getElementById("subMenu").style.display = "none"
-    }
-
-    function hideSubmenu() {
-        curView = "menu";
-        document.getElementById("subMenu").style.display = "none"
     }
 
     function handle_convert(event) {
@@ -227,7 +248,7 @@
     }
 
     function preview(event) {
-        hideMenu();
+        hidePopups(list_popups());
         let file_path = get_ext_path(item, "txt");
         if (file_path === "") {
             alert("preview " + file_path + ": txt format not available");
@@ -238,9 +259,8 @@
             if (response.code === 200) {
                 let view = document.getElementById('preview_div');
                 view.style.display = "block";
-                let rect = event.target.getBoundingClientRect();
-                view.style.left = rect.left + "px";
-                view.style.top = rect.bottom + window.scrollY + "px";
+                view.style.left = (screen.width / 40).toString();
+                view.style.top = window.scrollY + "px";
                 let content_view = document.getElementById("preview_content");
                 content_view.value = response.data;
             } else {
@@ -255,7 +275,7 @@
     }
 
     function ebk_to_format(to) {
-        hideMenu()
+        hidePopups(list_popups());
         console.log("convert " + item + ': from ' + from + " to " + to);
         $.post("/ebk_to_format", {'file_path': item, 'from': from, 'to': to}, function (response) {
             if (response.output && response.output.length > 0) {
@@ -269,18 +289,17 @@
     }
 
     function edit() {
-        hideMenu();
+        hidePopups(list_popups());
         console.log("edit " + item);
     }
 
     function rename(event) {
-        hideMenu();
+        hidePopups(list_popups());
         console.log("rename " + item);
-        curView = "rename";
         let view = document.getElementById("rename_div");
         view.style.display = 'block';
-        view.style.left = event.pageX + "px";
-        view.style.top = event.pageY + "px";
+        view.style.left = (screen.width / 4) + 'px';
+        view.style.top = (window.scrollY + screen.height / 4) + "px";
         let curName = document.getElementById("curName");
         curName.value = itemName;
         curName.readOnly = true;
@@ -290,15 +309,14 @@
     }
 
     function confirm_rename() {
-        cancel_rename()
+        hidePopups(list_popups());
         let newName = document.getElementById('newName').value;
         console.log("rename " + itemName + " to " + newName);
         $.post("/ebk_rename", {'path': item, 'curName': itemName, 'newName': newName}, function (response) {
             if (response.code === 200) {
-                console.log("renamed " + itemName + " to " + newName);
-                let old_item = document.getElementById(item);
-                old_item.innerText = newName;
-                old_item.id = response.path;
+                console.log("renamed " + itemName + " to " + newName + " path " + response.path);
+                let option = document.getElementById('sort_by').value.split('_')
+                $("#main").load("ebk_listfiles_main", {'sort_by': option[0], 'reverse': option[1]})
             } else {
                 alert(response.message);
             }
@@ -306,12 +324,11 @@
     }
 
     function cancel_rename() {
-        curView = "main";
-        document.getElementById("rename_div").style.display = "none";
+        hidePopups(list_popups());
     }
 
     function email() {
-        hideMenu();
+        hidePopups(list_popups());
         const epub_path = get_ext_path(item, "epub");
         if (epub_path === "") {
             window.alert("Email " + item + ": epub format is not available");
@@ -323,9 +340,62 @@
         });
     }
 
-    function delete_file() {
-        hideMenu();
+    function delete_file(event) {
+        hidePopups(list_popups());
         console.log("delete " + item);
+        let view = document.getElementById("delete_div");
+        view.style.display = 'block';
+        view.style.left = (screen.width / 4) + 'px';
+        view.style.top = (window.scrollY + screen.height / 4) + "px";
+        document.getElementById("delete_fileName").innerText = itemName;
+        document.getElementById("delete_format_all").checked = false;
+        let formats = document.getElementsByName("delete_format");
+        for (let format of formats) {
+            format.checked = false;
+        }
+    }
+
+    function confirm_delete(event) {
+        hidePopups(list_popups());
+        let formats = [];
+        for (let f of document.getElementsByName('delete_format')) {
+            if (f.checked)
+                formats.push(f.id.substring(7));
+        }
+        console.log("request delete formats: " + formats);
+        if (formats.length === 0) return;
+        $.post("/ebk_delete", {'path': item, 'formats[]': formats}, function (response) {
+            if (response.code === 200) {
+                console.log("deleted " + itemName + " with format: " + formats);
+                let option = document.getElementById('sort_by').value.split('_')
+                $("#main").load("ebk_listfiles_main", {'sort_by': option[0], 'reverse': option[1]})
+            } else {
+                alert(response.message);
+            }
+        });
+    }
+
+    function cancel_delete() {
+        hidePopups(list_popups());
+    }
+
+    function delete_format_select_all(target) {
+        let formats = document.getElementsByName("delete_format");
+        for (let format of formats) {
+            format.checked = target.checked;
+        }
+    }
+
+    function convert_all() {
+
+    }
+
+    function delete_all() {
+
+    }
+
+    function email_epub_all() {
+
     }
 
     function revert_selected() {
@@ -336,17 +406,14 @@
     }
 
     function select_deselect(target) {
-        let select = false;
-        if (target.checked)
-            select = true;
         let all = document.getElementsByName("file_checkbox");
         for (let i = 0; i < all.length; i++) {
-            all[i].checked = select;
+            all[i].checked = target.checked;
         }
     }
 
     function sort_by_selected(value) {
         let option = value.split('_')
-        $("#main").load("ebk_listfiles #main", {'sort_by': option[0], 'reverse': option[1]})
+        $("#main").load("ebk_listfiles_main", {'sort_by': option[0], 'reverse': option[1]})
     }
 </script>

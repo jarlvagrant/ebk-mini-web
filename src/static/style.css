@@ -334,14 +334,14 @@ tr.folders_even {background-color: #91a3af;}
 .preview-div {
   font-size: 0.85em;
   position: absolute;
-  width: 750px;
-  height: 350px;
+  width: 95%;
+  height: 80%;
 }
 
 .popup-window {
+  font-family: Serif;
   font-size: 1.25em;
-  padding: 5px 40px 5px 40px;
   text-align: center;
-  background-color: #377ba8;
-  color: black;
+  background-color: #415563;
+  color: #98b2c3;
 }

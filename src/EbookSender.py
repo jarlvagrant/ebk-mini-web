@@ -5,6 +5,7 @@ import re
 import subprocess
 import threading
 import time
+from logging import Logger
 
 import pinyin
 from pathlib import Path
@@ -94,7 +95,7 @@ class EbookListfilesMain(View):
 			if ext in file_types:
 				if stem not in files.keys():
 					files[stem] = {'parent': path + os.path.sep}
-				files[stem].update({ext: {'path': file_path, 'date': os.path.getctime(file_path)}})
+				files[stem].update({ext: {'path': file_path, 'date': os.path.getmtime(file_path), 'size': os.path.getsize(file_path)}})
 		if sort_by:
 			files = sort_files_by(sort_by, files, reverse=reverse)
 		logger.debug(files.__str__())
@@ -121,11 +122,16 @@ def sort_files_by(key, files, reverse=False):
 		case "name":
 			sorted_files = dict(
 				sorted(files.items(), key=lambda item: pinyin.get(item[0], format="strip"), reverse=reverse))
-		case "folder":
-			sorted_files = dict(
-				sorted(files.items(), key=lambda item: pinyin.get(item[1]['dp'], format="strip"), reverse=reverse))
+		case "size":
+			if reverse:
+				sorted_files= dict(sorted(files.items(), key=lambda item: max(val['size'] for key, val in item[1].items() if key != 'parent'), reverse=reverse))
+			else:
+				sorted_files= dict(sorted(files.items(), key=lambda item: min(val['size'] for key, val in item[1].items() if key != 'parent'), reverse=reverse))
 		case "date":
-			sorted_files = dict(sorted(files.items(), key=lambda item: item[1]['date'], reverse=reverse))
+			if reverse:
+				sorted_files= dict(sorted(files.items(), key=lambda item: max(val['date'] for key, val in item[1].items() if key != 'parent'), reverse=reverse))
+			else:
+				sorted_files= dict(sorted(files.items(), key=lambda item: min(val['date'] for key, val in item[1].items() if key != 'parent'), reverse=reverse))
 		case _:
 			sorted_files = files
 	return sorted_files
@@ -475,3 +481,14 @@ class EbookRenameItem(View):
 					msg += f"File {new_path}.{t} not found."
 		logger.debug(f"Rename {cur_name} to {new_name}: {code} {msg}")
 		return jsonify(code=code, message=msg, path=new_path)
+
+class EbookDeleteItem(View):
+	def dispatch_request(self) -> ft.ResponseReturnValue:
+		path = request.form.get('path')
+		formats = request.form.getlist('formats[]')
+		logger.debug(f"Delete {path}.{formats}")
+		if not path or len(formats) == 0:
+			return jsonify(code=401, message=f"Nothing to delete: path={path}, formats={formats}")
+		for f in formats:
+			Path(path + '.' + f).unlink(missing_ok=True)
+		return jsonify(code=200)
