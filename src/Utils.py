@@ -2,6 +2,7 @@ import datetime
 import json
 import logging
 import os
+import re
 import shutil
 import smtplib
 import sys
@@ -202,10 +203,58 @@ def read_binary_file(filepath=None):
 			f.close()
 	return output
 
-def write_text_file(text: str, path):
-	with open(path, 'w', encoding='utf-8') as f:
-		f.write(text)
-		f.close()
+def write_text_file(text: str, path: str, filename: str):
+	clean_path = os.path.join(path, sanitize_linux_filename(filename))
+	try:
+		with open(clean_path, 'w', encoding='utf-8') as f:
+			f.write(text)
+		logger.info(f"Saved extracted content file file: {clean_path}")
+	except Exception:
+		logger.error(f"Can't save extracted content to file: {clean_path}")
+	return clean_path
+
+def sanitize_linux_filename(filename, replacement="_"):
+	# 1. Reject or clean the path separator '/' and the null byte '\x00'
+	# Also cleans hidden control characters that break terminal scripts
+	forbidden_chars = r"[\/\x00-\x1f]"
+	clean_name = re.sub(forbidden_chars, replacement, filename)
+
+	# 2. Linux quirk: Avoid letting a filename start with a dash '-'
+	# This prevents terminal commands (like 'rm' or 'cat') from thinking it's an option flag
+	if clean_name.startswith("-"):
+		clean_name = replacement + clean_name[1:]
+
+	# 3. Linux Maximum Length Constraint (255 bytes max for most file systems)
+	# We encode to bytes to accurately measure length, then decode back
+	encoded_name = clean_name.encode("utf-8")
+	if len(encoded_name) > 255:
+		# Separate extension to preserve it if possible
+		root, ext = os.path.splitext(clean_name)
+		ext_bytes_len = len(ext.encode("utf-8"))
+
+		# Truncate the root string bytes to fit within the 255-byte limit
+		max_root_bytes = 255 - ext_bytes_len
+		truncated_root = root.encode("utf-8")[:max_root_bytes].decode(
+			"utf-8", errors="ignore"
+		)
+		clean_name = truncated_root + ext
+	return clean_name
+
+
+# --- Example Usage ---
+bad_linux_name = "-my/invalid\x00file*name.txt"
+good_linux_name = sanitize_linux_filename(bad_linux_name)
+
+print(f"Original:  {repr(bad_linux_name)}")
+print(f"Sanitized: {good_linux_name}")
+
+# Safely write the file
+try:
+	with open(good_linux_name, "w", encoding="utf-8") as file:
+		file.write("Linux file content.")
+	print("File saved successfully!")
+except OSError as e:
+	print(f"OS Error: {e}")
 
 
 class SendEmail:

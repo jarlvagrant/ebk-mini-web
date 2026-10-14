@@ -14,7 +14,7 @@ from bs4 import BeautifulSoup
 from ebooklib import epub
 from requests import HTTPError
 
-from Utils import UA, ConfigIO, read_binary_file, write_text_file
+from Utils import UA, ConfigIO, read_binary_file, write_text_file, sanitize_linux_filename
 
 logger = logging.getLogger(__name__)
 
@@ -313,9 +313,7 @@ class EpubConverter:
 		if not self.title:
 			logger.error(f"Can't save extracted content to file: failed to extract title")
 			return ""
-		txt_path = os.path.join(ConfigIO.get("ebook_dir"), self.title + ".txt")
-		write_text_file(self.data, txt_path)
-		logger.info(f"save extracted content to {txt_path}")
+		txt_path = write_text_file(self.data, ConfigIO.get("ebook_dir"), self.title + ".txt")
 		return txt_path
 
 	def get_chaps(self, indices):
@@ -428,7 +426,7 @@ class EpubConverter:
 		self.ebook.spine = ["nav", intro, *chaps]
 
 		# write to the file
-		file_path = os.path.join(self.path, self.title + ".epub")
+		file_path = os.path.join(self.path, sanitize_linux_filename(self.title + ".epub"))
 		epub.write_epub(file_path, self.ebook, {})
 		logger.info(f"Success: {self.title} converting done. number of chapters: {len(indices)}")
 		return file_path
