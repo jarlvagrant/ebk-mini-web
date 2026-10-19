@@ -6,6 +6,7 @@ FROM ubuntu:noble
 # libgl1 and libfontconfig are required for Calibre's headless tools to function
 RUN  apt-get update && \
   apt-get install -y --no-install-recommends \
+    git \
     dbus \
     fcitx-rime \
     fonts-wqy-microhei \
@@ -40,7 +41,7 @@ RUN ebook-convert --version
 
 # Set the working directory in the container
 WORKDIR /app
-COPY . .
+RUN git clone https://github.com/jarlvagrant/ebk-mini-web.git .
 
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
